@@ -24,7 +24,7 @@
 ## 🚀 Quick Start
 
 ### 1. Download
-Download the latest pre-built package `MultiBox-v1.0.1-win-x64.zip` from [**GitHub Releases**](https://github.com/uranrog-01/MultiBox/releases).
+Download the latest pre-built package `MultiBox-v1.0.3-win-x64.zip` from [**GitHub Releases**](https://github.com/uranrog-01/MultiBox/releases).
 
 ### 2. Run
 Extract the archive and double-click `MultiBox.exe`.
