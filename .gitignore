@@ -1,0 +1,61 @@
+# Build and compilation outputs
+bin/
+obj/
+publish/
+Publishe_NEW/
+dist/
+*.exe
+*.dll
+*.pdb
+*.msi
+*.appx
+
+# Exception: allow icons
+!icon.ico
+!icon.png
+
+# Large archives and backups
+*.rar
+*.zip
+*.7z
+*.tar.gz
+*.bak
+
+# Security & Private Credentials - NEVER commit private keys or passwords
+*.pfx
+*.key
+certs/*.pfx
+certs/*.key
+certs/*PASSWORD*
+certs/*password*
+certs/*.txt
+
+# Public certificates are fine to distribute for verification
+!zer0ne-root.cer
+!zer0ne.cer
+!certs/*.cer
+
+# IDE and Editor files
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS and filesystem artifacts
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.Zone.Identifier
+
+# Ghidra cache and local candidates
+design/rea-evidence/ghproj/
+design/live-save-candidate/
+*.gbf
+
+# Node & test logs
+node_modules/
+*.log
+design/*.log

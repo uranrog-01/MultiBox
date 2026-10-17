@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GhostBox — Ephemeral App Isolation Blueprint</title>
+  <style>
+    :root {
+      --bg-deep: #050507;
+      --card-bg: #121318;
+      --card-border: #1F2128;
+      --btn-idle: #1B1C21;
+      --btn-ring: #2B2D35;
+      --neon-green: #C8FF29;
+      --neon-glow: rgba(200, 255, 41, 0.42);
+      --text-main: #FFFFFF;
+      --text-muted: #6E717C;
+      --danger: #FF3B5C;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: #0D0E12;
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      gap: 36px;
+      padding: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* =========================================================
+       APP WINDOW FRAME (380x760 Standalone Windows EXE Target)
+       ========================================================= */
+    .app-frame {
+      width: 375px;
+      height: 760px;
+      background: var(--bg-deep);
+      border-radius: 42px;
+      border: 1.5px solid #22242C;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 0 6px #090A0D;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 26px 24px 22px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease;
+    }
+
+    .app-frame.drag-over {
+      border-color: var(--neon-green);
+      box-shadow: 0 0 45px rgba(200, 255, 41, 0.25);
+    }
+
+    /* Top Title / Custom Window Drag Bar */
+    .window-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #D8DAE0;
+      margin-bottom: 14px;
+      -webkit-app-region: drag;
+    }
+
+    .win-controls {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .win-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #282A32;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .win-dot:hover { background: var(--neon-green); }
+    .win-dot.close:hover { background: var(--danger); }
+
+    /* Status Row */
+    .header-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .shield-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: #14151A;
+      border: 1px solid #262830;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      transition: all 0.3s ease;
+    }
+
+    .shield-icon.active {
+      background: rgba(200, 255, 41, 0.15);
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+    }
+
+    .status-labels span {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-labels strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .mode-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--text-main);
+    }
+
+    .crown-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--neon-green);
+      color: #050507;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    /* Timer & Metrics Readout */
+    .telemetry-section {
+      text-align: center;
+      margin-top: 10px;
+      z-index: 2;
+      min-height: 92px;
+    }
+
+    .session-timer {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      opacity: 0.18;
+      transition: opacity 0.3s ease;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .session-timer.active {
+      opacity: 1;
+    }
+
+    .metrics-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .metric-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .metric-divider {
+      width: 1px;
+      height: 28px;
+      background: #1C1E26;
+    }
+
+    .metric-arrow {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-val {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .metric-val small {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Center Interactive Particle & Power Core */
+    .core-stage {
+      position: relative;
+      width: 310px;
+      height: 310px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 310px;
+      height: 310px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .power-aura {
+      position: absolute;
+      width: 185px;
+      height: 185px;
+      border-radius: 50%;
+      background: var(--neon-green);
+      filter: blur(48px);
+      opacity: 0;
+      transition: opacity 0.5s ease, background 0.3s ease;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .power-btn {
+      position: relative;
+      z-index: 3;
+      width: 166px;
+      height: 166px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #262830, #15161B);
+      border: 2px solid var(--btn-ring);
+      box-shadow: inset 0 2px 6px rgba(255,255,255,0.06), 0 12px 30px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .power-btn:hover {
+      transform: scale(1.03);
+      border-color: #3E414D;
+    }
+
+    .power-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Loading State */
+    .power-btn.loading {
+      border-color: var(--neon-green);
+    }
+
+    /* Active Isolated State (Green Neon) */
+    .power-btn.active {
+      background: radial-gradient(circle at 35% 25%, #DEFF70, #B8F21D 65%, #93C900);
+      border-color: #E5FF99;
+      box-shadow: 0 0 35px var(--neon-glow), inset 0 3px 10px rgba(255, 255, 255, 0.45);
+    }
+
+    .power-svg {
+      width: 38px;
+      height: 38px;
+      stroke: #6E717C;
+      stroke-width: 2.3;
+      fill: none;
+      transition: stroke 0.3s ease;
+      margin-bottom: 8px;
+    }
+
+    .power-btn.loading .power-svg {
+      stroke: var(--neon-green);
+    }
+
+    .power-btn.active .power-svg {
+      stroke: #08090C;
+    }
+
+    .power-caption {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color 0.3s ease;
+      text-align: center;
+      padding: 0 12px;
+    }
+
+    .power-btn.loading .power-caption {
+      color: var(--neon-green);
+    }
+
+    .power-btn.active .power-caption {
+      color: #08090C;
+      font-weight: 700;
+    }
+
+    /* Target Application Pill (Drag & Drop Zone) */
+    .target-pill {
+      position: relative;
+      z-index: 2;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 999px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .target-pill:hover {
+      border-color: #343844;
+      background: #171920;
+    }
+
+    .app-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .app-icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1D202A;
+      border: 1px solid #2D3140;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .app-text {
+      overflow: hidden;
+    }
+
+    .app-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+
+    .app-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .session-signal {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .bars {
+      display: flex;
+      gap: 2px;
+      align-items: flex-end;
+      height: 12px;
+    }
+
+    .bar {
+      width: 3px;
+      background: #333742;
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+    .bar:nth-child(1) { height: 5px; }
+    .bar:nth-child(2) { height: 8px; }
+    .bar:nth-child(3) { height: 11px; }
+    .bar:nth-child(4) { height: 12px; }
+
+    .bars.live .bar {
+      background: var(--neon-green);
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-top: 8px;
+      z-index: 2;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 10px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nav-item.active, .nav-item:hover {
+      color: var(--text-main);
+    }
+
+    /* =========================================================
+       RIGHT PANEL: AI AGENT ARCHITECTURAL BLUEPRINT SPEC
+       ========================================================= */
+    .blueprint-panel {
+      max-width: 580px;
+      background: #111319;
+      border: 1px solid #232632;
+      border-radius: 24px;
+      padding: 28px;
+      color: #D5D8E2;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    .bp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #222530;
+    }
+
+    .bp-header h2 {
+      font-size: 18px;
+      color: #FFF;
+    }
+
+    .copy-spec-btn {
+      background: var(--neon-green);
+      color: #050507;
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .copy-spec-btn:hover {
+      transform: scale(1.04);
+    }
+
+    .bp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .bp-card {
+      background: #171A22;
+      border: 1px solid #242936;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .bp-card h4 {
+      font-size: 12px;
+      color: var(--neon-green);
+      margin-bottom: 4px;
+    }
+
+    .bp-card p {
+      font-size: 11.5px;
+      color: #9DA3B4;
+      line-height: 1.45;
+    }
+
+    .log-console {
+      background: #08090C;
+      border: 1px solid #1E212B;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      height: 175px;
+      overflow-y: auto;
+      color: #98A0B3;
+      line-height: 1.55;
+    }
+
+    .log-console .log-green { color: var(--neon-green); }
+    .log-console .log-red { color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================
+       LEFT: INTERACTIVE APPLICATION UI PROTOTYPE
+       ========================================================= -->
+  <div class="app-frame" id="appWindow">
+    <!-- Custom Frameless Window Bar -->
+    <div class="window-bar">
+      <span>GHOSTBOX // ISOLATOR</span>
+      <div class="win-controls">
+        <div class="win-dot" title="Minimize"></div>
+        <div class="win-dot close" title="Exit & Wipe All" onclick="triggerWipe()"></div>
+      </div>
+    </div>
+
+    <!-- Status Header -->
+    <div class="header-status">
+      <div class="status-left">
+        <div class="shield-icon" id="shieldBadge">✕</div>
+        <div class="status-labels">
+          <span>Status Isolation</span>
+          <strong id="statusTitle">Not Connected</strong>
+        </div>
+      </div>
+      <div class="mode-badge">
+        <span>ISO</span>
+        <div class="crown-circle">⚡</div>
+      </div>
+    </div>
+
+    <!-- Session Timer & Live Sandbox Metrics -->
+    <div class="telemetry-section">
+      <div class="session-timer" id="timerDisplay">00:00:00</div>
+      <div class="metrics-row">
+        <div class="metric-box">
+          <span class="metric-arrow">↑</span>
+          <div>
+            <div class="metric-label">RAM Sandbox</div>
+            <div class="metric-val" id="ramVal">0 <small>MB</small></div>
+          </div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-box">
+          <span class="metric-arrow">↓</span>
+          <div>
+            <div class="metric-label">Temp Footprint</div>
+            <div class="metric-val" id="diskVal">0 <small>KB</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Particle Ring + Interactive Green Button -->
+    <div class="core-stage">
+      <canvas id="particleCanvas" width="310" height="310"></canvas>
+      <div class="power-aura" id="powerAura"></div>
+      <div class="power-btn" id="powerBtn">
+        <svg class="power-svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+          <line x1="12" y1="2" x2="12" y2="12"></line>
+        </svg>
+        <div class="power-caption" id="btnCaption">Drop App to Start</div>
+      </div>
+    </div>
+
+    <!-- Bottom App Drop / Target Card -->
+    <input type="file" id="filePicker" accept=".exe,.lnk,.bat,.msi" style="display:none" />
+    <div class="target-pill" id="dropPill" onclick="document.getElementById('filePicker').click()">
+      <div class="app-info">
+        <div class="app-icon-circle" id="appIcon">📦</div>
+        <div class="app-text">
+          <div class="app-title" id="appName">Drop .EXE or Shortcut</div>
+          <div class="app-sub" id="appSessionId">ENV: READY_EPHEMERAL</div>
+        </div>
+      </div>
+      <div class="session-signal">
+        <div class="bars" id="signalBars">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+        <span id="isolationTag">IDLE</span>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+      <div class="nav-item active" onclick="loadSampleMailX()">
+        <span>⌂</span>
+        <span>Demo mailX</span>
+      </div>
+      <div class="nav-item" onclick="document.getElementById('filePicker').click()">
+        <span>⊕</span>
+        <span>Browse EXE</span>
+      </div>
+      <div class="nav-item" onclick="triggerWipe()">
+        <span>⌫</span>
+        <span>Force Wipe</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       RIGHT: AI CODING AGENT SPECIFICATION & LIVE KERNEL LOG
+       ========================================================= -->
+  <div class="blueprint-panel">
+    <div class="bp-header">
+      <h2>AI Agent EXE Build Blueprint</h2>
+      <button class="copy-spec-btn" onclick="copyAgentPrompt()">Copy AI Agent Prompt</button>
+    </div>
+
+    <div class="bp-grid">
+      <div class="bp-card">
+        <h4>1. Zero-Profile FS Redirection</h4>
+        <p>Redirects <code>USERPROFILE</code>, <code>APPDATA</code>, <code>LOCALAPPDATA</code>, and <code>--user-data-dir</code> to <code>%TEMP%\GhostBox_&lt;GUID&gt;</code> without creating a Windows User.</p>
+      </div>
+      <div class="bp-card">
+        <h4>2. Volatile RAM Registry Hive</h4>
+        <p>Hooks <code>RegOverridePredefKey</code> onto <code>HKCU\Software\GhostBox_&lt;GUID&gt;</code> using <code>REG_OPTION_VOLATILE</code> (stored strictly in RAM).</p>
+      </div>
+      <div class="bp-card">
+        <h4>3. Mutex Single-Instance Bypass</h4>
+        <p>Detours <code>CreateMutexW</code> &amp; <code>OpenMutexW</code>, appending session GUID so apps like <code>mailX.exe</code> open a fresh instance alongside your main account.</p>
+      </div>
+      <div class="bp-card">
+        <h4>4. Double-Click Green Wipe</h4>
+        <p>Single-click launches isolated app. Double-clicking the glowing green button closes the Win32 Job Object handle and wipes the temp folder.</p>
+      </div>
+    </div>
+
+    <div class="log-console" id="kernelLog">
+      <div>[SYSTEM] GhostBox Ephemeral Isolation Blueprint Ready.</div>
+      <div>[ACTION] Drag &amp; Drop any .EXE / .LNK onto the phone frame (or click "Demo mailX").</div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       HIDDEN MASTER PROMPT FOR AI AGENT (TAURI / C# WEBVIEW2)
+       ========================================================= -->
+  <textarea id="agentMasterSpec" style="display:none;">
+# PROJECT BLUEPRINT: GHOSTBOX (EPHEMERAL ISOLATED WINDOWS APP LAUNCHER)
+Build this single-window Windows desktop application (.exe) using **Tauri v2 (Rust backend + this exact HTML/CSS/JS frontend)** OR **C# .NET 8 WPF/WebView2**.
+
+## 1. CORE USER FLOW (STRICT SINGLE-MODE EPHEMERAL DESIGN)
+- **Window Spec**: Frameless, transparent corners, 375x760px fixed size matching the embedded HTML/CSS mockup.
+- **Drag & Drop / Browse**: User drops any `.exe` or `.lnk` shortcut onto the window. If `.lnk`, resolve target path via `IShellLinkW`.
+- **Single-Click Launch**: Clicking the center button transitions through a 600ms "Connecting" state into the glowing Neon Green (`#C8FF29`) "Isolated" state and launches the app inside a fresh disposable container.
+- **Double-Click Green Button (Instant Teardown & Zero-Trace Wipe)**: Double-clicking the active green power button (or closing the app) immediately kills the isolated process tree and wipes 100% of files/registry keys created during that session so the next launch is always a first-time fresh install.
+
+## 2. WIN32 ISOLATION ENGINE REQUIREMENTS (NO NEW WINDOWS USER ACCOUNTS)
+1. **Ephemeral Directory Creation**:
+   - Generate `SessionID = Guid::new_v4()[0..8]`.
+   - Create `%TEMP%\GhostBox_<SessionID>\{Roaming, Local, LocalLow, Profile, ChromiumData, Temp}`.
+2. **Environment & Chromium Redirection**:
+   - Spawn child process with overridden environment variables:
+     `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `TEMP`, `TMP`, and pass `--user-data-dir="%TEMP%\GhostBox_<SessionID>\ChromiumData"` for Electron/Chromium apps.
+3. **Win32 Job Object Process Tree Containment**:
+   - Create a Job Object (`CreateJobObjectW`), configure `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` (`0x2000`), and bind the spawned process (`AssignProcessToJobObject`).
+4. **User-Mode API Hook (`GhostHook.dll` via Microsoft Detours / minhook)**:
+   - Hook `CreateMutexW` and `OpenMutexW`: Append `_<SessionID>` to every named mutex so single-instance apps (`mailX.exe`) never detect an already running main account instance.
+   - Redirect `HKEY_CURRENT_USER`: Call `RegCreateKeyExW` with `REG_OPTION_VOLATILE` at `HKCU\Software\GhostBox_<SessionID>` and call `RegOverridePredefKey(HKEY_CURRENT_USER, hTempKey)` on `DLL_PROCESS_ATTACH`.
+5. **Zero-Trace Wipe on Double-Click**:
+   - Close Job Object handle (`CloseHandle(hJob)`) to instantly terminate root + all child processes.
+   - Delete volatile registry subkey tree (`RegDeleteTreeW`).
+   - Strip read-only flags and recursively delete `%TEMP%\GhostBox_<SessionID>`.
+  </textarea>
+
+  <script>
+    // =========================================================
+    // 1. 3D PARTICLE RING ENGINE (MATCHING UPLOADED UI DESIGN)
+    // =========================================================
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    const PARTICLES = 780;
+    const ringParticles = [];
+    let appState = 'IDLE'; // IDLE | LOADING | ISOLATED
+    let currentApp = null;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let clickTimer = null;
+
+    for (let i = 0; i < PARTICLES; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radiusSpread = (Math.random() - 0.5) * 34;
+      ringParticles.push({
+        angle,
+        baseRadius: 112 + radiusSpread,
+        size: Math.random() * 1.7 + 0.4,
+        speed: (Math.random() * 0.006 + 0.002) * (Math.random() > 0.5 ? 1 : -1),
+        alpha: Math.random() * 0.75 + 0.15,
+        wobbleOffset: Math.random() * Math.PI * 2
+      });
+    }
+
+    function renderParticles(time) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      for (const p of ringParticles) {
+        const speedMult = appState === 'LOADING' ? 4.5 : (appState === 'ISOLATED' ? 1.8 : 0.6);
+        p.angle += p.speed * speedMult;
+
+        const wave = Math.sin(p.angle * 5 + time * 0.002 + p.wobbleOffset) * 6;
+        const r = p.baseRadius + wave;
+        const x = cx + Math.cos(p.angle) * r;
+        const y = cy + Math.sin(p.angle) * r;
+
+        if (appState === 'ISOLATED') {
+          ctx.fillStyle = Math.random() > 0.35
+            ? `rgba(200, 255, 41, ${p.alpha})`
+            : `rgba(255, 255, 255, ${p.alpha * 0.85})`;
+        } else if (appState === 'LOADING') {
+          ctx.fillStyle = `rgba(200, 255, 41, ${p.alpha})`;
+        } else {
+          ctx.fillStyle = `rgba(220, 225, 235, ${p.alpha * 0.65})`;
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(renderParticles);
+    }
+    requestAnimationFrame(renderParticles);
+
+    // =========================================================
+    // 2. LOGGING & TELEMETRY SIMULATION
+    // =========================================================
+    function logEvent(msg, type = '') {
+      const box = document.getElementById('kernelLog');
+      const line = document.createElement('div');
+      if (type === 'green') line.className = 'log-green';
+      if (type === 'red') line.className = 'log-red';
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function generateSessionGuid() {
+      return Math.random().toString(16).substring(2, 10).toUpperCase();
+    }
+
+    // =========================================================
+    // 3. DRAG & DROP / FILE LOADING
+    // =========================================================
+    const appWindow = document.getElementById('appWindow');
+    const filePicker = document.getElementById('filePicker');
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      window.addEventListener(evt, e => {
+        e.preventDefault();
+        appWindow.classList.add('drag-over');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+      window.addEventListener(evt, e => {
+        e.preventDefault();
+        appWindow.classList.remove('drag-over');
+      });
+    });
+
+    window.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if (file) mountApplication(file.name);
+    });
+
+    filePicker.addEventListener('change', e => {
+      if (e.target.files[0]) mountApplication(e.target.files[0].name);
+    });
+
+    function loadSampleMailX() {
+      mountApplication('mailX.exe');
+    }
+
+    function mountApplication(fileName) {
+      if (appState === 'ISOLATED') {
+        triggerWipe(() => mountApplication(fileName));
+        return;
+      }
+      const guid = generateSessionGuid();
+      currentApp = { name: fileName, guid };
+      document.getElementById('appName').textContent = fileName;
+      document.getElementById('appSessionId').textContent = `BOX: Ghost_${guid}`;
+      document.getElementById('appIcon').textContent = '🚀';
+      document.getElementById('btnCaption').textContent = 'Tap to Isolate';
+      logEvent(`Mounted target binary: ${fileName} (Prepared Sandbox ID: ${guid})`, 'green');
+      startIsolationSequence();
+    }
+
+    // =========================================================
+    // 4. SINGLE-CLICK LAUNCH & DOUBLE-CLICK WIPE ENGINE
+    // =========================================================
+    const powerBtn = document.getElementById('powerBtn');
+
+    powerBtn.addEventListener('click', () => {
+      if (appState === 'IDLE') {
+        if (!currentApp) loadSampleMailX();
+        else startIsolationSequence();
+      } else if (appState === 'ISOLATED') {
+        // Prompt user that Double-Click wipes the sandbox
+        if (!clickTimer) {
+          clickTimer = setTimeout(() => {
+            clickTimer = null;
+            logEvent('Tip: Double-click the green button to kill & wipe this isolated session.');
+          }, 260);
+        }
+      }
+    });
+
+    powerBtn.addEventListener('dblclick', () => {
+      if (clickTimer) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+      }
+      if (appState === 'ISOLATED' || appState === 'LOADING') {
+        triggerWipe();
+      }
+    });
+
+    function startIsolationSequence() {
+      if (!currentApp) return;
+      appState = 'LOADING';
+      powerBtn.className = 'power-btn loading';
+      document.getElementById('btnCaption').textContent = 'Isolating...';
+      document.getElementById('statusTitle').textContent = 'Creating Container...';
+      logEvent(`Creating %TEMP%\\GhostBox_${currentApp.guid} virtual filesystem...`);
+      logEvent(`Injecting GhostHook.dll -> Hooking CreateMutexW & Volatile HKCU...`);
+
+      setTimeout(() => {
+        appState = 'ISOLATED';
+        powerBtn.className = 'power-btn active';
+        document.getElementById('powerAura').style.opacity = '0.55';
+        document.getElementById('btnCaption').textContent = 'Double-Click Wipe';
+        document.getElementById('statusTitle').textContent = 'Isolated & Clean';
+        document.getElementById('shieldBadge').className = 'shield-icon active';
+        document.getElementById('shieldBadge').textContent = '✔';
+        document.getElementById('timerDisplay').classList.add('active');
+        document.getElementById('signalBars').classList.add('live');
+        document.getElementById('isolationTag').textContent = 'FRESH';
+
+        logEvent(`Launched ${currentApp.name} as 1st-time clean instance (PID bound to JobObject).`, 'green');
+        startSessionTelemetry();
+      }, 650);
+    }
+
+    function startSessionTelemetry() {
+      secondsElapsed = 0;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const hrs = String(Math.floor(secondsElapsed / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((secondsElapsed % 3600) / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        document.getElementById('timerDisplay').textContent = `${hrs}:${mins}:${secs}`;
+
+        const ramSim = Math.min(185, 42 + secondsElapsed * 3);
+        const diskSim = (1.4 + secondsElapsed * 0.15).toFixed(1);
+        document.getElementById('ramVal').innerHTML = `${ramSim} <small>MB</small>`;
+        document.getElementById('diskVal').innerHTML = `${diskSim} <small>MB</small>`;
+      }, 1000);
+    }
+
+    function triggerWipe(callback) {
+      if (appState === 'IDLE' && !currentApp) return;
+      clearInterval(timerInterval);
+
+      const wipedApp = currentApp ? currentApp.name : 'Application';
+      const wipedGuid = currentApp ? currentApp.guid : 'TEMP';
+
+      logEvent(`DOUBLE-CLICK WIPE TRIGGERED -> Closing Win32 JobObject for ${wipedApp}...`, 'red');
+      logEvent(`Shredding %TEMP%\\GhostBox_${wipedGuid} & Volatile HKCU hive...`, 'red');
+
+      appState = 'IDLE';
+      currentApp = null;
+      powerBtn.className = 'power-btn';
+      document.getElementById('powerAura').style.opacity = '0';
+      document.getElementById('btnCaption').textContent = 'Drop App to Start';
+      document.getElementById('statusTitle').textContent = 'Not Connected';
+      document.getElementById('shieldBadge').className = 'shield-icon';
+      document.getElementById('shieldBadge').textContent = '✕';
+      document.getElementById('timerDisplay').classList.remove('active');
+      document.getElementById('timerDisplay').textContent = '00:00:00';
+      document.getElementById('ramVal').innerHTML = `0 <small>MB</small>`;
+      document.getElementById('diskVal').innerHTML = `0 <small>KB</small>`;
+      document.getElementById('appName').textContent = 'Drop .EXE or Shortcut';
+      document.getElementById('appSessionId').textContent = 'ENV: ZERO_TRACE_WIPED';
+      document.getElementById('appIcon').textContent = '📦';
+      document.getElementById('signalBars').classList.remove('live');
+      document.getElementById('isolationTag').textContent = 'CLEAN';
+
+      setTimeout(() => {
+        logEvent(`Zero traces remaining. Next launch of ${wipedApp} will start as a brand-new install.`, 'green');
+        if (typeof callback === 'function') callback();
+      }, 220);
+    }
+
+    function copyAgentPrompt() {
+      const spec = document.getElementById('agentMasterSpec').value;
+      navigator.clipboard.writeText(spec);
+      const btn = document.querySelector('.copy-spec-btn');
+      btn.textContent = 'Copied Blueprint!';
+      setTimeout(() => (btn.textContent = 'Copy AI Agent Prompt'), 1800);
+    }
+  </script>
+</body>
+</html>

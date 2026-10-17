@@ -1,0 +1,10 @@
+# smartscreen.dll function count: 4994
+HIT: FUN_1800c2a90 @ 1800c2a90 -> RegGetValue
+HIT: FUN_1800c3350 @ 1800c3350 -> RegGetValue
+HIT: FUN_1800c4470 @ 1800c4470 -> RegGetValue
+HIT: FUN_1800cba4c @ 1800cba4c -> WinVerifyTrust
+HIT: FUN_1800cbc0c @ 1800cbc0c -> CryptCATAdmin
+HIT: FUN_1800cbcd0 @ 1800cbcd0 -> CryptCATAdmin
+HIT: FUN_1800cc6f4 @ 1800cc6f4 -> WinVerifyTrust
+HIT: FUN_1800ccbc4 @ 1800ccbc4 -> WinVerifyTrust
+HIT: FUN_1800cce88 @ 1800cce88 -> WinVerifyTrust

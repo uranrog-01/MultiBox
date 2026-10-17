@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MultiBox · UI upgrade</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 30px 34px; background: radial-gradient(ellipse at 50% 100%, #192615, transparent 70%), #080c0a; color: #e9efe6; font: 14px 'Segoe UI', sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: -.5px; margin: 0; }
+  header p { margin: 0; color: #91a08e; font-size: 12px; }
+  main { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 25px; }
+  figure { margin: 0; }
+  figcaption { font-size: 10px; letter-spacing: 2px; color: #9eac97; margin-bottom: 12px; }
+  figcaption span { color: #baff2a; margin-right: 7px; }
+  img { width: 100%; display: block; border-radius: 15px; box-shadow: 0 18px 35px #0005; }
+  footer { margin-top: 21px; font-size: 11px; color: #6e806c; letter-spacing: .2px; }
+  @media (max-width: 800px) { main { grid-template-columns: repeat(2, minmax(0, 1fr)); } header { display: block; } header p { margin-top: 8px; } }
+</style>
+<header><h1>MultiBox <span style="color:#baff2a">/</span> More room. More flow.</h1><p>620 × 960 workspace · flowing particle mesh · larger controls</p></header>
+<main>
+  <figure><figcaption><span>01</span> STANDBY</figcaption><img src="ui-idle.png" alt="Standby with a dense white particle fabric and larger app controls"></figure>
+  <figure><figcaption><span>02</span> PREPARING</figcaption><img src="ui-loading.png" alt="Preparing a session with an indeterminate lime loading ring"></figure>
+  <figure><figcaption><span>03</span> SESSION ACTIVE</figcaption><img src="ui-active.png" alt="Active session with a glowing lime button inside a rippling white particle mesh"></figure>
+  <figure><figcaption><span>04</span> SESSION ENDED</figcaption><img src="ui-ended.png" alt="Session ended with a checkmark and launch again action"></figure>
+</main>
+<footer>Interface previews use sample telemetry. Preserved sessions have a separate cyan state.</footer>
+</html>

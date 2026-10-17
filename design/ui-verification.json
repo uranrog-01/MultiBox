@@ -1,0 +1,194 @@
+{
+  "errors": [],
+  "layouts": [
+    {
+      "state": "idle",
+      "width": 620,
+      "height": 960,
+      "navBottom": 959,
+      "stageHeight": 431,
+      "actionsBottom": 0,
+      "bodyScroll": 958
+    },
+    {
+      "state": "loading",
+      "width": 620,
+      "height": 960,
+      "navBottom": 959,
+      "stageHeight": 431,
+      "actionsBottom": 0,
+      "bodyScroll": 958
+    },
+    {
+      "state": "active",
+      "width": 620,
+      "height": 960,
+      "navBottom": 959,
+      "stageHeight": 370,
+      "actionsBottom": 852,
+      "bodyScroll": 958
+    },
+    {
+      "state": "preserved",
+      "width": 620,
+      "height": 960,
+      "navBottom": 959,
+      "stageHeight": 370,
+      "actionsBottom": 852,
+      "bodyScroll": 958
+    },
+    {
+      "state": "idle",
+      "width": 560,
+      "height": 840,
+      "navBottom": 839,
+      "stageHeight": 346,
+      "actionsBottom": 0,
+      "bodyScroll": 838
+    },
+    {
+      "state": "loading",
+      "width": 560,
+      "height": 840,
+      "navBottom": 839,
+      "stageHeight": 346,
+      "actionsBottom": 0,
+      "bodyScroll": 838
+    },
+    {
+      "state": "active",
+      "width": 560,
+      "height": 840,
+      "navBottom": 839,
+      "stageHeight": 285,
+      "actionsBottom": 732,
+      "bodyScroll": 838
+    },
+    {
+      "state": "preserved",
+      "width": 560,
+      "height": 840,
+      "navBottom": 839,
+      "stageHeight": 285,
+      "actionsBottom": 732,
+      "bodyScroll": 838
+    },
+    {
+      "state": "idle",
+      "width": 470,
+      "height": 770,
+      "navBottom": 769,
+      "stageHeight": 347,
+      "actionsBottom": 0,
+      "bodyScroll": 768
+    },
+    {
+      "state": "loading",
+      "width": 470,
+      "height": 770,
+      "navBottom": 769,
+      "stageHeight": 347,
+      "actionsBottom": 0,
+      "bodyScroll": 768
+    },
+    {
+      "state": "active",
+      "width": 470,
+      "height": 770,
+      "navBottom": 769,
+      "stageHeight": 290.4375,
+      "actionsBottom": 685,
+      "bodyScroll": 768
+    },
+    {
+      "state": "preserved",
+      "width": 470,
+      "height": 770,
+      "navBottom": 769,
+      "stageHeight": 293.375,
+      "actionsBottom": 685,
+      "bodyScroll": 768
+    },
+    {
+      "state": "idle",
+      "width": 470,
+      "height": 650,
+      "navBottom": 649,
+      "stageHeight": 286.40625,
+      "actionsBottom": 0,
+      "bodyScroll": 648
+    },
+    {
+      "state": "loading",
+      "width": 470,
+      "height": 650,
+      "navBottom": 649,
+      "stageHeight": 288.40625,
+      "actionsBottom": 0,
+      "bodyScroll": 648
+    },
+    {
+      "state": "active",
+      "width": 470,
+      "height": 650,
+      "navBottom": 649,
+      "stageHeight": 244.3125,
+      "actionsBottom": 578,
+      "bodyScroll": 648
+    },
+    {
+      "state": "preserved",
+      "width": 470,
+      "height": 650,
+      "navBottom": 649,
+      "stageHeight": 247.4375,
+      "actionsBottom": 578,
+      "bodyScroll": 648
+    },
+    {
+      "state": "idle",
+      "width": 400,
+      "height": 600,
+      "navBottom": 599,
+      "stageHeight": 249.75,
+      "actionsBottom": 0,
+      "bodyScroll": 598
+    },
+    {
+      "state": "loading",
+      "width": 400,
+      "height": 600,
+      "navBottom": 599,
+      "stageHeight": 251.71875,
+      "actionsBottom": 0,
+      "bodyScroll": 598
+    },
+    {
+      "state": "active",
+      "width": 400,
+      "height": 600,
+      "navBottom": 599,
+      "stageHeight": 206.3125,
+      "actionsBottom": 528,
+      "bodyScroll": 598
+    },
+    {
+      "state": "preserved",
+      "width": 400,
+      "height": 600,
+      "navBottom": 599,
+      "stageHeight": 207.59375,
+      "actionsBottom": 528,
+      "bodyScroll": 598
+    }
+  ],
+  "halo": {
+    "points": 7920,
+    "drawMs": 1.5,
+    "renderedFrames": 25,
+    "animating": true,
+    "reducedMotion": false
+  },
+  "reducedMotion": "passed",
+  "bridge": "browse, launch, wipe and drawer navigation passed"
+}

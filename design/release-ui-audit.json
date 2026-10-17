@@ -1,0 +1,12 @@
+{
+  "injectionConfirmed": false,
+  "nativeActions": [
+    "getRecoveryStatus",
+    "getIndicatorSettings",
+    "getSessions",
+    "getContextMenuStatus",
+    "isolateRunningProcess"
+  ],
+  "errors": [],
+  "method": "HTML-entity filename, actual Tasks renderer, simulated native bridge; harmless boolean marker only."
+}

@@ -1,0 +1,109 @@
+{
+  "errors": [],
+  "sliding": {
+    "startX": 541.589,
+    "middleX": 74.1442
+  },
+  "layouts": [
+    {
+      "name": "tasks",
+      "width": 620,
+      "height": 960,
+      "bounds": {
+        "x": -599.7858276367188,
+        "y": 78,
+        "width": 592,
+        "height": 782
+      }
+    },
+    {
+      "name": "vault",
+      "width": 620,
+      "height": 960,
+      "bounds": {
+        "x": 14,
+        "y": 78,
+        "width": 592,
+        "height": 782
+      }
+    },
+    {
+      "name": "settings",
+      "width": 620,
+      "height": 960,
+      "bounds": {
+        "x": 14.658456802368164,
+        "y": 78,
+        "width": 591.9999904632568,
+        "height": 782
+      }
+    },
+    {
+      "name": "tasks",
+      "width": 470,
+      "height": 770,
+      "bounds": {
+        "x": 14.498668670654297,
+        "y": 63,
+        "width": 441.9999885559082,
+        "height": 626
+      }
+    },
+    {
+      "name": "vault",
+      "width": 470,
+      "height": 770,
+      "bounds": {
+        "x": 14,
+        "y": 63,
+        "width": 442,
+        "height": 626
+      }
+    },
+    {
+      "name": "settings",
+      "width": 470,
+      "height": 770,
+      "bounds": {
+        "x": 14.1638765335083,
+        "y": 63,
+        "width": 442.00000286102295,
+        "height": 626
+      }
+    },
+    {
+      "name": "tasks",
+      "width": 400,
+      "height": 600,
+      "bounds": {
+        "x": 14.139163970947266,
+        "y": 54,
+        "width": 371.99999618530273,
+        "height": 476
+      }
+    },
+    {
+      "name": "vault",
+      "width": 400,
+      "height": 600,
+      "bounds": {
+        "x": 14,
+        "y": 54,
+        "width": 372,
+        "height": 476
+      }
+    },
+    {
+      "name": "settings",
+      "width": 400,
+      "height": 600,
+      "bounds": {
+        "x": 14.14012336730957,
+        "y": 54,
+        "width": 372.00001335144043,
+        "height": 476
+      }
+    }
+  ],
+  "checks": "Exclusive sheets, native save/launch bridge, replace-session confirmation, canceled launch, missing-app recovery, safe text rendering, active/preserved/idle Vault states, focus return and reduced motion passed."
+}

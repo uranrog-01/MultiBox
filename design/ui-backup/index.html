@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MultiBox - Ephemeral Isolation</title>
+  <style>
+    :root {
+      --bg-color: #07080a;
+      --card-bg: rgba(18, 22, 30, 0.85);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --accent-green: #b4f000;
+      --accent-green-glow: rgba(180, 240, 0, 0.45);
+      --accent-cyan: #00f0ff;
+      --text-dim: #7f8699;
+      --text-bright: #ffffff;
+      --danger-red: #ff4757;
+      --danger-glow: rgba(255, 71, 87, 0.4);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(ellipse at 50% -10%, rgba(180, 240, 0, 0.13), transparent 55%),
+        radial-gradient(ellipse at 85% 100%, rgba(0, 160, 255, 0.09), transparent 50%),
+        radial-gradient(ellipse at 15% 90%, rgba(180, 240, 0, 0.05), transparent 45%);
+      color: var(--text-bright);
+      font-family: var(--font-family);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Custom Titlebar for window dragging */
+    .titlebar {
+      height: 48px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      background: transparent;
+      z-index: 100;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+
+    .titlebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #9aa1b3;
+    }
+
+    .brand-glow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green), 0 0 20px var(--accent-green-glow);
+      animation: pulseBrandDot 2.5s infinite ease-in-out;
+    }
+
+    @keyframes pulseBrandDot {
+      0%, 100% { opacity: 0.75; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 14px var(--accent-green); }
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    .win-btn {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s, transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .win-btn:hover { opacity: 0.85; transform: scale(1.15); }
+    .btn-close { background: #ff5f56; box-shadow: 0 0 8px rgba(255, 95, 86, 0.5); }
+    .btn-min { background: #ffbd2e; box-shadow: 0 0 8px rgba(255, 189, 46, 0.5); }
+
+    /* Toast Notification (Safe pointer events) */
+    .toast-container {
+      position: absolute;
+      top: 54px;
+      left: 20px;
+      right: 20px;
+      z-index: 250;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(24, 12, 16, 0.96);
+      border: 1px solid rgba(255, 71, 87, 0.4);
+      color: #fff;
+      padding: 13px 18px;
+      border-radius: 14px;
+      backdrop-filter: blur(25px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(-15px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none; /* Only clickable when shown */
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .toast.success {
+      background: rgba(14, 26, 16, 0.96);
+      border-color: rgba(180, 240, 0, 0.45);
+    }
+
+    .toast-close {
+      cursor: pointer;
+      opacity: 0.6;
+      font-size: 17px;
+      font-weight: 700;
+      padding: 0 4px;
+      transition: opacity 0.2s;
+    }
+    .toast-close:hover { opacity: 1; }
+
+    /* Top Telemetry Header */
+    .header-bar {
+      padding: 6px 26px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #555966;
+      transition: all 0.35s ease;
+    }
+
+    .status-dot.active {
+      background: var(--accent-green);
+      box-shadow: 0 0 14px var(--accent-green);
+    }
+
+    .pro-badge {
+      background: rgba(180, 240, 0, 0.12);
+      border: 1px solid rgba(180, 240, 0, 0.28);
+      color: var(--accent-green);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Modern Cyber Isolation HUD */
+    .metrics-container {
+      margin: 4px 20px 0 20px;
+      z-index: 20;
+      flex-shrink: 0;
+      background: rgba(18, 22, 30, 0.72);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 10px 14px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      transition: all 0.3s ease;
+    }
+
+    .metrics-container.active {
+      border-color: rgba(180, 240, 0, 0.35);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 16px rgba(180, 240, 0, 0.12);
+      background: rgba(20, 26, 36, 0.88);
+    }
+
+    .metrics-container.preserved {
+      border-color: rgba(0, 240, 255, 0.35);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 16px rgba(0, 240, 255, 0.12);
+      background: rgba(16, 24, 34, 0.88);
+    }
+
+    .hud-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .hud-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #9aa1b3;
+      text-transform: uppercase;
+    }
+
+    .hud-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #555a6d;
+      transition: all 0.3s ease;
+    }
+
+    .hud-status-dot.active {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulseBrandDot 2s infinite ease-in-out;
+    }
+
+    .hud-status-dot.preserved {
+      background: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    .hud-runtime-pill {
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #64748b;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 3px 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.3s;
+    }
+
+    .hud-runtime-pill.active {
+      color: var(--accent-green);
+      border-color: rgba(180, 240, 0, 0.35);
+      background: rgba(180, 240, 0, 0.1);
+      box-shadow: 0 0 10px rgba(180, 240, 0, 0.2);
+    }
+
+    .hud-runtime-pill.preserved {
+      color: var(--accent-cyan);
+      border-color: rgba(0, 240, 255, 0.35);
+      background: rgba(0, 240, 255, 0.1);
+    }
+
+    /* Live Frequency Wave Visualizer */
+    .hud-freq-bars {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 12px;
+    }
+
+    .hud-freq-bar {
+      width: 2.5px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 2px;
+      transition: height 0.2s, background-color 0.3s;
+    }
+
+    .metrics-container.active .hud-freq-bar {
+      background: var(--accent-green);
+      animation: freqDance 1.2s infinite ease-in-out alternate;
+    }
+
+    .metrics-container.active .hud-freq-bar:nth-child(2) { animation-delay: 0.15s; }
+    .metrics-container.active .hud-freq-bar:nth-child(3) { animation-delay: 0.3s; }
+    .metrics-container.active .hud-freq-bar:nth-child(4) { animation-delay: 0.45s; }
+    .metrics-container.active .hud-freq-bar:nth-child(5) { animation-delay: 0.6s; }
+
+    @keyframes freqDance {
+      0% { height: 4px; opacity: 0.5; }
+      50% { height: 12px; opacity: 1; }
+      100% { height: 6px; opacity: 0.7; }
+    }
+
+    .hud-telemetry-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 11.5px;
+    }
+
+    .hud-tele-col {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-dim);
+    }
+
+    .hud-tele-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .hud-tele-val {
+      font-weight: 600;
+      color: #cbd5e1;
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    /* Central Particle & Button Stage */
+    .stage {
+      flex: 1;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    #particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Concentric sonic rings */
+    .sonic-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px dashed rgba(180, 240, 0, 0.15);
+      pointer-events: none;
+      transition: all 0.5s ease;
+    }
+
+    .ring-1 { width: 240px; height: 240px; }
+    .ring-2 { width: 310px; height: 310px; border-style: dotted; border-color: rgba(180, 240, 0, 0.08); }
+
+    .stage.drag-active .sonic-ring {
+      border-color: rgba(180, 240, 0, 0.5);
+      animation: rotateRing 8s linear infinite;
+    }
+
+    @keyframes rotateRing {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Center Circular Power Button */
+    .power-btn-container {
+      position: relative;
+      width: 184px;
+      height: 184px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 30;
+      border-radius: 50%;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .power-btn-container:hover {
+      transform: scale(1.04);
+    }
+
+    .power-btn-container:active {
+      transform: scale(0.96);
+    }
+
+    .power-btn {
+      width: 158px;
+      height: 158px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #252a36, #12141a);
+      box-shadow: 
+        0 20px 45px rgba(0, 0, 0, 0.85),
+        inset 0 2px 4px rgba(255, 255, 255, 0.18),
+        inset 0 -4px 10px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .power-icon {
+      width: 52px;
+      height: 52px;
+      stroke: #5d6477;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: all 0.4s ease;
+    }
+
+    .power-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #727a8f;
+      margin-top: 9px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      transition: all 0.4s ease;
+      text-align: center;
+    }
+
+    /* Active Glowing Green Button State */
+    .power-btn.active {
+      background: radial-gradient(circle at 40% 40%, #d2ff36, #9fe800);
+      box-shadow: 
+        0 0 60px var(--accent-green-glow),
+        0 20px 40px rgba(0, 0, 0, 0.65),
+        inset 0 2px 5px rgba(255, 255, 255, 0.7),
+        inset 0 -3px 8px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .power-btn.active .power-icon {
+      stroke: #090a0c;
+    }
+
+    .power-btn.active .power-label {
+      color: #090a0c;
+      font-weight: 800;
+    }
+
+    /* Isolating / Loading pulse state */
+    .power-btn.loading {
+      border: 1px solid var(--accent-green);
+      animation: pulseGlow 1.4s infinite alternate ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 16px rgba(180, 240, 0, 0.2); transform: scale(0.98); }
+      100% { box-shadow: 0 0 50px rgba(180, 240, 0, 0.75); transform: scale(1.02); }
+    }
+
+    /* Drag & Drop Visual Hint */
+    .drag-hint {
+      position: absolute;
+      top: -36px;
+      font-size: 13px;
+      color: var(--accent-green);
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      text-shadow: 0 0 14px rgba(180, 240, 0, 0.7);
+      transform: translateY(4px);
+    }
+
+    .stage.drag-active .drag-hint {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stage.drag-active .power-btn {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 45px var(--accent-green-glow);
+    }
+
+    /* Bottom App Info Pill Card */
+    .bottom-section {
+      padding: 0 26px 20px 26px;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .app-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(20px);
+      border-radius: 22px;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-card:hover {
+      border-color: rgba(255, 255, 255, 0.22);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.65);
+    }
+
+    .app-card-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .app-icon-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      font-size: 21px;
+      transition: transform 0.2s;
+    }
+
+    .app-card:hover .app-icon-circle {
+      transform: scale(1.05);
+    }
+
+    .app-info {
+      overflow: hidden;
+    }
+
+    .app-title {
+      font-size: 15.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .app-sub {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .vault-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .vault-tag.active {
+      color: var(--accent-green);
+    }
+
+    /* Bottom Navigation Row */
+    .nav-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 12px 0 20px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #555a6d;
+      font-size: 11.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-item.active, .nav-item:hover {
+      color: var(--text-bright);
+    }
+
+    .nav-icon {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      transition: transform 0.2s;
+    }
+
+    .nav-item:hover .nav-icon {
+      transform: translateY(-2px);
+    }
+
+    /* Settings Slide-Up Drawer / Modal */
+    .settings-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(7, 8, 10, 0.97);
+      backdrop-filter: blur(28px);
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(18px);
+      padding: 16px 18px 16px 18px;
+      overflow: hidden;
+    }
+
+    .settings-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .settings-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .settings-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: #cbd5e1;
+      font-size: 15px;
+      font-weight: 700;
+      transition: all 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 520;
+    }
+    .settings-close:hover { 
+      background: rgba(255, 255, 255, 0.2); 
+      color: #fff;
+      transform: scale(1.08); 
+    }
+
+    .settings-scroll-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 14px;
+    }
+
+    .settings-scroll-body::-webkit-scrollbar {
+      width: 5px;
+    }
+    .settings-scroll-body::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
+    }
+    .settings-scroll-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+    }
+    .settings-scroll-body::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-green);
+    }
+
+    .settings-section {
+      background: rgba(20, 24, 32, 0.82);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 0px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 13px;
+    }
+    .setting-row:last-child { border-bottom: none; }
+
+    .setting-label { font-weight: 500; font-size: 12.5px; }
+    .setting-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--accent-green);
+      background: rgba(180, 240, 0, 0.12);
+      border: 1px solid rgba(180, 240, 0, 0.25);
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .action-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 13px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .action-btn.danger {
+      background: rgba(255, 71, 87, 0.15);
+      border-color: rgba(255, 71, 87, 0.35);
+      color: #ff6b81;
+    }
+    .action-btn.danger:hover {
+      background: rgba(255, 71, 87, 0.28);
+    }
+
+    /* Modern Cyber Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #cbd5e1;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: rgba(180, 240, 0, 0.3);
+      border-color: var(--accent-green);
+      box-shadow: 0 0 14px var(--accent-green-glow);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(22px);
+      background-color: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+
+    /* Preserved Session Styles */
+    .power-btn.preserved {
+      background: radial-gradient(circle at 40% 40%, #00f0ff, #0088cc);
+      box-shadow: 
+        0 0 50px rgba(0, 240, 255, 0.45),
+        0 20px 40px rgba(0, 0, 0, 0.65),
+        inset 0 2px 5px rgba(255, 255, 255, 0.7),
+        inset 0 -3px 8px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .power-btn.preserved .power-icon {
+      stroke: #090a0c;
+    }
+
+    .power-btn.preserved .power-label {
+      color: #090a0c;
+      font-weight: 800;
+    }
+
+    .status-dot.preserved {
+      background: var(--accent-cyan);
+      box-shadow: 0 0 14px var(--accent-cyan);
+    }
+
+    .session-timer.preserved {
+      color: var(--accent-cyan);
+      text-shadow: 0 0 22px rgba(0, 240, 255, 0.45);
+      opacity: 0.95;
+    }
+
+    .wipe-btn-pill {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #ff6b81;
+      background: rgba(255, 71, 87, 0.16);
+      border: 1px solid rgba(255, 71, 87, 0.38);
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .wipe-btn-pill:hover {
+      background: rgba(255, 71, 87, 0.32);
+      transform: scale(1.05);
+    }
+
+    .save-btn-pill {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent-green);
+      background: rgba(180, 240, 0, 0.15);
+      border: 1px solid rgba(180, 240, 0, 0.4);
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .save-btn-pill:hover {
+      background: rgba(180, 240, 0, 0.3);
+      box-shadow: 0 0 12px rgba(180, 240, 0, 0.4);
+      transform: scale(1.05);
+    }
+
+    /* Danger Confirmation Modal Styles */
+    .confirm-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 7, 10, 0.88);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .confirm-modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .confirm-modal-card {
+      background: rgba(24, 15, 20, 0.97);
+      border: 1.5px solid rgba(255, 71, 87, 0.6);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(255, 71, 87, 0.3);
+      border-radius: 20px;
+      padding: 26px 22px;
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+      transform: scale(0.92);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .confirm-modal-overlay.open .confirm-modal-card {
+      transform: scale(1);
+    }
+
+    .confirm-btn {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      letter-spacing: 0.5px;
+    }
+
+    .confirm-btn.danger {
+      background: linear-gradient(135deg, #ff4757, #d63031);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(255, 71, 87, 0.4);
+    }
+
+    .confirm-btn.danger:hover {
+      background: linear-gradient(135deg, #ff6b81, #ee5253);
+      box-shadow: 0 6px 22px rgba(255, 71, 87, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .confirm-btn.cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .confirm-btn.cancel:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* SaveBox Snapshot Card Styles */
+    .savebox-card {
+      background: rgba(22, 26, 34, 0.78);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .savebox-card:hover {
+      border-color: rgba(180, 240, 0, 0.4);
+      background: rgba(28, 34, 45, 0.9);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .savebox-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: rgba(180, 240, 0, 0.12);
+      border: 1px solid rgba(180, 240, 0, 0.3);
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .savebox-run-btn {
+      background: linear-gradient(135deg, rgba(180, 240, 0, 0.22), rgba(0, 240, 255, 0.25));
+      border: 1px solid rgba(180, 240, 0, 0.5);
+      border-radius: 9px;
+      color: var(--accent-green);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .savebox-run-btn:hover {
+      background: linear-gradient(135deg, rgba(180, 240, 0, 0.38), rgba(0, 240, 255, 0.42));
+      color: #fff;
+      border-color: var(--accent-green);
+      box-shadow: 0 0 14px var(--accent-green-glow);
+      transform: scale(1.04);
+    }
+
+    .savebox-del-btn {
+      background: rgba(255, 71, 87, 0.12);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      border-radius: 9px;
+      color: #ff6b81;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .savebox-del-btn:hover {
+      background: rgba(255, 71, 87, 0.28);
+      color: #fff;
+      border-color: #ff4757;
+      transform: scale(1.08);
+    }
+
+    /* Task Manager Styles */
+    .task-search-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 12.5px;
+      padding: 10px 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .task-search-input:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+      background: rgba(255, 255, 255, 0.09);
+    }
+    .task-refresh-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .task-refresh-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
+    }
+    .task-tab-btn {
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .task-tab-btn.active {
+      color: #fff;
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+    }
+    .process-list-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 4px 20px 4px;
+      margin-top: 4px;
+    }
+    .process-card {
+      background: rgba(22, 26, 34, 0.78);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 11px 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .process-card:hover {
+      border-color: rgba(0, 240, 255, 0.35);
+      background: rgba(28, 34, 45, 0.88);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .process-card-info {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+      flex: 1;
+    }
+    .process-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12.5px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .process-meta {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .process-name-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .process-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .process-pid {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: monospace;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 5px;
+      border-radius: 5px;
+    }
+    .process-title {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .process-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 10px;
+      flex-shrink: 0;
+    }
+    .process-ram {
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: monospace;
+    }
+    .isolate-proc-btn {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 235, 175, 0.25));
+      border: 1px solid rgba(0, 235, 175, 0.5);
+      border-radius: 9px;
+      color: #00e5a3;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .isolate-proc-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.35), rgba(0, 235, 175, 0.45));
+      color: #fff;
+      border-color: #00f5d4;
+      box-shadow: 0 0 14px rgba(0, 245, 212, 0.35);
+      transform: scale(1.04);
+    }
+    .proc-loading-state, .proc-empty-state {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 12.5px;
+      padding: 40px 20px;
+    }
+
+    .app-card:hover {
+      border-color: rgba(0, 240, 255, 0.45);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.65), 0 0 18px rgba(0, 240, 255, 0.15);
+    }
+  </style>
+</head>
+<body id="body">
+
+  <!-- Frameless Titlebar -->
+  <div class="titlebar" id="dragTitlebar">
+    <div class="titlebar-brand">
+      <img src="icon.png" style="width:20px; height:20px; border-radius:5px; object-fit:cover; margin-right:8px; display:inline-block; vertical-align:middle;" alt="MultiBox" onerror="this.style.display='none'" />
+      <div class="brand-glow-dot"></div>
+      <span>MULTIBOX</span>
+    </div>
+    <div class="window-controls">
+      <button class="win-btn btn-min" title="Minimize" onclick="window.chrome_backend?.minimizeWindow()"></button>
+      <button class="win-btn btn-close" title="Close to Tray" onclick="window.chrome_backend?.closeWindow()"></button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container">
+    <div class="toast" id="toast">
+      <span id="toastMsg">Notification message</span>
+      <span class="toast-close" onclick="hideNotification()">✕</span>
+    </div>
+  </div>
+
+  <!-- Header Status Bar -->
+  <div class="header-bar">
+    <div class="status-badge">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Not Isolated</span>
+    </div>
+    <div class="pro-badge">
+      <span>ZERO-TRACE</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+  </div>
+
+  <!-- Modern Cyber Isolation HUD -->
+  <div class="metrics-container" id="metricsContainer">
+    <div class="hud-top-row">
+      <div class="hud-status-badge">
+        <div class="hud-status-dot" id="hudStatusDot"></div>
+        <span id="hudStatusText">STANDBY • ZERO-TRACE</span>
+      </div>
+      <div class="hud-freq-bars" id="hudFreqBars" title="Container Activity Pulse">
+        <div class="hud-freq-bar"></div>
+        <div class="hud-freq-bar"></div>
+        <div class="hud-freq-bar"></div>
+        <div class="hud-freq-bar"></div>
+        <div class="hud-freq-bar"></div>
+      </div>
+      <div class="hud-runtime-pill" id="sessionTimer" title="Elapsed Runtime">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+        <span id="timerText">00:00:00</span>
+      </div>
+    </div>
+    <div class="hud-telemetry-grid">
+      <div class="hud-tele-col">
+        <span class="hud-tele-label">RAM:</span>
+        <span class="hud-tele-val" id="ramText">0 MB</span>
+      </div>
+      <div class="hud-tele-col">
+        <span class="hud-tele-label">CPU:</span>
+        <span class="hud-tele-val" id="cpuText">0%</span>
+      </div>
+      <div class="hud-tele-col">
+        <span class="hud-tele-label">MODE:</span>
+        <span class="hud-tele-val" id="hudModeText" style="color:var(--accent-green);">EPHEMERAL</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Stage with Particles & Power Button -->
+  <div class="stage" id="dropStage">
+    <canvas id="particleCanvas"></canvas>
+    <div class="sonic-ring ring-1"></div>
+    <div class="sonic-ring ring-2"></div>
+
+    <div class="power-btn-container" id="powerBtnContainer">
+      <div class="drag-hint">DROP SHORTCUT / APP HERE</div>
+      
+      <div class="power-btn" id="powerBtn">
+        <svg class="power-icon" viewBox="0 0 24 24">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+          <line x1="12" y1="2" x2="12" y2="12"></line>
+        </svg>
+        <div class="power-label" id="powerLabel">Drop App</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Target Application Card -->
+  <div class="bottom-section">
+    <div class="app-card" id="appCard" onclick="onAppCardClick(event)">
+      <div class="app-card-left">
+        <div class="app-icon-circle" id="appIconCircle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="app-info">
+          <div class="app-title" id="appTitle">Select Application</div>
+          <div class="app-sub" id="appSub">Drop shortcut (.lnk) or .exe directly here</div>
+        </div>
+      </div>
+      <div class="vault-tag" id="vaultTag">
+        <span>Browse</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Minimal Nav Bar -->
+  <div class="nav-bar">
+    <div class="nav-item active" id="navIsolate" onclick="closeAllDrawers();">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+      <span>Isolate</span>
+    </div>
+    <div class="nav-item" id="navTasks" onclick="openTaskManager()">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+      <span>Tasks</span>
+    </div>
+    <div class="nav-item" id="navVault" onclick="openVaultDrawer()">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+      <span>Vault</span>
+    </div>
+    <div class="nav-item" id="navSettings" onclick="openSettings()">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <span>Settings</span>
+    </div>
+  </div>
+
+  <!-- Settings Slide-Up Drawer -->
+  <div class="settings-modal" id="settingsModal">
+    <div class="settings-header">
+      <div class="settings-title">MultiBox Settings</div>
+      <div class="settings-close" id="settingsCloseBtn" onclick="closeSettings()" title="Close Settings">✕</div>
+    </div>
+
+    <div class="settings-scroll-body">
+      <div class="settings-section">
+        <div class="section-title">Isolation Core</div>
+        <div class="setting-row">
+          <span class="setting-label">Ephemeral Vault Virtualization</span>
+          <span class="setting-badge">ACTIVE</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">SaveBox Persistent Snapshots</span>
+          <span class="setting-badge" style="color:var(--accent-green); border-color:var(--accent-green);">PROTECTED</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Chromium / Electron Auto-Tuning</span>
+          <span class="setting-badge">ENABLED</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Job Object Atomic Tree-Kill</span>
+          <span class="setting-badge">ACTIVE</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">System Tray Minimization</span>
+          <span class="setting-badge">ENABLED</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">Windows Explorer Integration</div>
+        <div class="setting-row">
+          <div style="padding-right: 12px;">
+            <div class="setting-label">Right-Click Context Menu</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px; line-height: 1.35;">
+              Adds "Run in Isolated Mode (MultiBox)" to right-click on all .exe and .lnk files
+            </div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="contextMenuToggle" onchange="toggleContextMenu(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-title">Vault Storage & Maintenance</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; word-break: break-all; font-family: monospace;">
+          %LOCALAPPDATA%\MultiBox\Vaults
+        </div>
+        <button class="action-btn" onclick="openSaveBoxFolder()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+          Open SaveBox in File Explorer
+        </button>
+        <button class="action-btn" onclick="openVaultExplorer()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Open Temporary Vaults in File Explorer
+        </button>
+        <button class="action-btn" onclick="window.chrome_backend?.cleanAllVaults()" style="color:#00f0ff; border-color:rgba(0, 240, 255, 0.3);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Clean Temporary Vaults (Preserve SaveBox)
+        </button>
+        <button class="action-btn danger" onclick="openPurgeConfirmModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Purge All Existing Vaults (Warning YES/NO)
+        </button>
+      </div>
+
+      <div class="settings-section" style="margin-top: 4px; font-size: 11px; color: var(--text-dim); text-align: center;">
+        <div>MultiBox Ephemeral Sandbox v2.0</div>
+        <div style="margin-top: 2px; opacity: 0.65;">.NET 10 & Win32 User-Mode Isolation</div>
+        <div style="margin-top: 8px;">
+          <button class="action-btn" style="padding: 7px; font-size: 11px; opacity: 0.85;" onclick="window.chrome_backend?.exitApplication()">
+            Exit Application Completely
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Process Task Manager Slide-Up Drawer -->
+  <div class="settings-modal" id="taskManagerModal">
+    <div class="settings-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2.2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+        <div>
+          <div class="settings-title" style="font-size:17px;">Process Task Manager</div>
+          <div style="font-size: 11px; color: var(--text-dim); margin-top: 1px;">Pick any running app or hidden process to run isolated</div>
+        </div>
+      </div>
+      <div class="settings-close" id="taskManagerCloseBtn" onclick="closeTaskManager()" title="Close Task Manager">✕</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:6px;">
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="taskSearchInput" placeholder="Search processes (chrome, discord, codex, pid)..." oninput="filterProcessList()" class="task-search-input" />
+        <button class="task-refresh-btn" onclick="refreshProcessList()" title="Refresh Processes">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Refresh
+        </button>
+      </div>
+      <div style="display:flex; gap:8px; font-size:11px;">
+        <button class="task-tab-btn active" id="tabApps" onclick="setProcessFilter('apps')">Apps with Windows (<span id="countApps">0</span>)</button>
+        <button class="task-tab-btn" id="tabAll" onclick="setProcessFilter('all')">All Processes (<span id="countAll">0</span>)</button>
+      </div>
+    </div>
+
+    <div class="process-list-container" id="processListContainer">
+      <div class="proc-loading-state">Scanning active system processes...</div>
+    </div>
+  </div>
+
+  <!-- Vault & SaveBox Slide-Up Drawer -->
+  <div class="settings-modal" id="saveBoxModal">
+    <div class="settings-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2.2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <div>
+          <div class="settings-title" style="font-size:17px;">Vault & SaveBox</div>
+          <div style="font-size: 11px; color: var(--text-dim); margin-top: 1px;">Ephemeral Isolation Core & Persistent Presets</div>
+        </div>
+      </div>
+      <div class="settings-close" id="saveBoxCloseBtn" onclick="closeSaveBoxDrawer()" title="Close Vault Drawer">✕</div>
+    </div>
+
+    <div class="settings-scroll-body">
+      <!-- 1. Ephemeral Vault Core (VAULT FIRST) -->
+      <div class="settings-section" style="border-color: rgba(0, 240, 255, 0.25);">
+        <div class="section-title" style="color: var(--accent-cyan); display:flex; justify-content:space-between; align-items:center;">
+          <span>1. Ephemeral Vault Core</span>
+          <span id="vaultCoreBadge" class="setting-badge" style="color:var(--accent-cyan); border-color:var(--accent-cyan); background:rgba(0, 240, 255, 0.1);">ZERO-TRACE</span>
+        </div>
+        <div id="vaultCoreInfo" style="font-size: 11.5px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.45;">
+          Isolation Status: <strong id="vaultSessionText" style="color:#fff;">Standby</strong><br>
+          <span style="font-size: 10px; color: var(--text-dim); font-family: monospace;" id="vaultPathText">%LOCALAPPDATA%\MultiBox\Vaults</span>
+        </div>
+        <button class="action-btn" onclick="openVaultExplorer()" style="padding: 9px; font-size: 11.5px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Open Ephemeral Vaults Folder
+        </button>
+      </div>
+
+      <!-- 2. SaveBox Live Session Snapshot (SAVEBOX SECOND) -->
+      <div class="settings-section" style="border-color: rgba(180, 240, 0, 0.25);">
+        <div class="section-title" style="color: var(--accent-green); display:flex; justify-content:space-between; align-items:center;">
+          <span>2. SaveBox Session Snapshot</span>
+          <span id="saveBoxLiveBadge" class="setting-badge" style="font-size:10px;">IDLE</span>
+        </div>
+        <div id="saveBoxActiveText" style="font-size: 11.5px; color: #cbd5e1; margin-bottom: 10px; line-height: 1.45;">
+          No isolated session currently active.
+        </div>
+        <button class="action-btn" id="saveCurrentSessionBtn" onclick="saveCurrentSession()" style="background: rgba(180, 240, 0, 0.16); border-color: rgba(180, 240, 0, 0.38); color: #fff; font-weight:700;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          Save Current Session to SaveBox
+        </button>
+      </div>
+
+      <!-- 3. Saved Snapshots Library in SaveBox -->
+      <div class="settings-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+          <span class="section-title" style="margin-bottom:0;">3. Saved Snapshots (<span id="saveBoxCount">0</span>)</span>
+          <button class="task-refresh-btn" onclick="refreshSaveBoxList()" style="padding: 3px 8px; font-size:10.5px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Refresh
+          </button>
+        </div>
+
+        <div class="process-list-container" id="saveBoxListContainer" style="max-height: 190px; margin-top: 2px;">
+          <div class="proc-loading-state">Loading SaveBox snapshots...</div>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <button class="action-btn" style="padding: 9px; font-size: 11.5px;" onclick="openSaveBoxFolder()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            Open SaveBox Folder in File Explorer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-App Delete Snapshot Confirmation Modal (Dark Cyber Mode - No Browser Alert) -->
+  <div class="confirm-modal-overlay" id="deleteConfirmModal">
+    <div class="confirm-modal-card" style="max-width: 380px;">
+      <div style="width:50px; height:50px; border-radius:50%; background:rgba(255, 71, 87, 0.16); border:1.5px solid rgba(255, 71, 87, 0.45); display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4757" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </div>
+
+      <div style="color:#ff6b81; font-size:16px; font-weight:800; letter-spacing:0.5px; margin-bottom:8px;">
+        REMOVE SNAPSHOT?
+      </div>
+
+      <div id="deleteConfirmText" style="font-size:12.5px; color:#cbd5e1; line-height:1.5; margin-bottom:18px;">
+        Are you sure you want to remove this snapshot from SaveBox?
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="confirm-btn danger" onclick="confirmDeleteSnapshot()" style="flex:1;">
+          YES, REMOVE
+        </button>
+        <button class="confirm-btn cancel" onclick="closeDeleteConfirmModal()" style="flex:1;">
+          CANCEL
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Danger Purge Confirmation Modal -->
+  <div class="confirm-modal-overlay" id="purgeConfirmModal">
+    <div class="confirm-modal-card">
+      <div style="width:56px; height:56px; border-radius:50%; background:rgba(255, 71, 87, 0.16); border:1.5px solid rgba(255, 71, 87, 0.45); display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff4757" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+
+      <div style="color:#ff6b81; font-size:17px; font-weight:800; letter-spacing:0.8px; margin-bottom:10px;">
+        PERMANENT WIPE WARNING
+      </div>
+
+      <div style="font-size:13px; color:#cbd5e1; line-height:1.55; margin-bottom:20px; text-align:center;">
+        Purging all existing vaults will permanently delete all temporary session vaults <strong style="color:#ff4757;">AND ALL SAVED SNAPSHOTS IN SAVEBOX</strong>.
+        <div style="margin-top:10px; color:#ff8080; font-weight:600; font-size:12px;">
+          All saved application snapshots, profile data, and settings will be permanently wiped off. This action cannot be undone.
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:9px;">
+        <button class="confirm-btn danger" onclick="confirmPurgeAction(true)">
+          YES, PERMANENTLY WIPE EVERYTHING (INCLUDING SAVEBOX)
+        </button>
+        <button class="confirm-btn cancel" onclick="confirmPurgeAction(false)">
+          NO, KEEP SAVEBOX SAFE (CANCEL)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Particle Simulation & State Script -->
+  <script>
+    // Native C# Host Bridge
+    window.chrome_backend = {
+      minimizeWindow: () => window.chrome?.webview?.postMessage({ action: 'minimizeWindow' }),
+      closeWindow: () => window.chrome?.webview?.postMessage({ action: 'closeWindow' }),
+      exitApplication: () => window.chrome?.webview?.postMessage({ action: 'exitApplication' }),
+      dragWindow: () => window.chrome?.webview?.postMessage({ action: 'dragWindow' }),
+      browseApp: () => window.chrome?.webview?.postMessage({ action: 'browseApp' }),
+      launchApp: (path) => window.chrome?.webview?.postMessage({ action: 'launchApp', path: path }),
+      reopenApp: () => window.chrome?.webview?.postMessage({ action: 'reopenApp' }),
+      reopenOrFocusApp: () => window.chrome?.webview?.postMessage({ action: 'reopenOrFocusApp' }),
+      getRunningProcesses: () => window.chrome?.webview?.postMessage({ action: 'getRunningProcesses' }),
+      isolateRunningProcess: (pid, path) => window.chrome?.webview?.postMessage({ action: 'isolateRunningProcess', pid: pid, path: path }),
+      terminateAndWipe: () => window.chrome?.webview?.postMessage({ action: 'terminateAndWipe' }),
+      openVaultDirectory: () => window.chrome?.webview?.postMessage({ action: 'openVaultDirectory' }),
+      openSaveBoxDirectory: () => window.chrome?.webview?.postMessage({ action: 'openSaveBoxDirectory' }),
+      saveToSaveBox: () => window.chrome?.webview?.postMessage({ action: 'saveToSaveBox' }),
+      getSaveBoxSnapshots: () => window.chrome?.webview?.postMessage({ action: 'getSaveBoxSnapshots' }),
+      deleteSaveBoxSnapshot: (appName) => window.chrome?.webview?.postMessage({ action: 'deleteSaveBoxSnapshot', appName: appName }),
+      launchSaveBoxSnapshot: (path) => window.chrome?.webview?.postMessage({ action: 'launchSaveBoxSnapshot', path: path }),
+      cleanAllVaults: () => window.chrome?.webview?.postMessage({ action: 'cleanAllVaults' }),
+      purgeAllVaultsConfirmed: () => window.chrome?.webview?.postMessage({ action: 'purgeAllVaultsConfirmed' }),
+      getContextMenuStatus: () => window.chrome?.webview?.postMessage({ action: 'getContextMenuStatus' }),
+      setContextMenu: (enabled) => window.chrome?.webview?.postMessage({ action: 'setContextMenu', enabled: enabled }),
+      setSelectedPath: (path) => { selectedAppPath = path; }
+    };
+
+    function toggleContextMenu(enabled) {
+      window.chrome_backend?.setContextMenu(enabled);
+    }
+
+    window.onContextMenuStatus = function(enabled) {
+      const toggle = document.getElementById('contextMenuToggle');
+      if (toggle) toggle.checked = !!enabled;
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const tb = document.getElementById('dragTitlebar');
+      if (tb) {
+        tb.addEventListener('mousedown', (e) => {
+          if (!e.target.closest('.window-controls')) {
+            window.chrome_backend.dragWindow();
+          }
+        });
+      }
+
+      // Explicit close button listeners
+      document.getElementById('settingsCloseBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSettings();
+      });
+      document.getElementById('saveBoxCloseBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeSaveBoxDrawer();
+      });
+
+      // Escape key closes any active drawer or modal
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeAllDrawers();
+        }
+      });
+
+      // Synchronize context menu status on start
+      window.chrome_backend?.getContextMenuStatus();
+    });
+
+    // State machine: 'idle' | 'loading' | 'active'
+    let currentState = 'idle';
+    let currentTelemetry = null;
+    let selectedAppPath = '';
+    let clickTimeout = null;
+    let toastTimeout = null;
+    let mouseX = -1000, mouseY = -1000;
+
+    // Elements
+    const powerBtn = document.getElementById('powerBtn');
+    const powerLabel = document.getElementById('powerLabel');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const sessionTimer = document.getElementById('sessionTimer');
+    const ramText = document.getElementById('ramText');
+    const cpuText = document.getElementById('cpuText');
+    const appTitle = document.getElementById('appTitle');
+    const appSub = document.getElementById('appSub');
+    const vaultTag = document.getElementById('vaultTag');
+    const dropStage = document.getElementById('dropStage');
+    const settingsModal = document.getElementById('settingsModal');
+
+    // Canvas & Enhanced Particle Engine
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, centerX, centerY;
+    const PARTICLE_COUNT = 420;
+    const particles = [];
+
+    // Track mouse on stage
+    dropStage.addEventListener('mousemove', (e) => {
+      const rect = dropStage.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+    });
+
+    dropStage.addEventListener('mouseleave', () => {
+      mouseX = -1000;
+      mouseY = -1000;
+    });
+
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.angle = Math.random() * Math.PI * 2;
+        this.baseRadius = 100 + Math.random() * 70;
+        this.radius = this.baseRadius;
+        this.angularSpeed = (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * 0.006);
+        this.size = Math.random() * 2.3 + 0.6;
+        this.alpha = Math.random() * 0.55 + 0.25;
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        this.currentX = 0;
+        this.currentY = 0;
+      }
+
+      update() {
+        let speedMult = 1.0;
+        if (currentState === 'loading') speedMult = 3.8;
+        else if (currentState === 'active') speedMult = 2.0;
+
+        this.angle += this.angularSpeed * speedMult;
+        this.pulsePhase += 0.03 * speedMult;
+
+        if (currentState === 'idle') {
+          this.radius = this.baseRadius + Math.sin(this.pulsePhase) * 8;
+        } else if (currentState === 'loading') {
+          this.radius = 85 + Math.sin(this.pulsePhase) * 22;
+        } else if (currentState === 'active') {
+          this.radius = 102 + Math.sin(this.pulsePhase) * 16;
+        } else if (currentState === 'preserved') {
+          this.radius = 110 + Math.sin(this.pulsePhase) * 12;
+        }
+
+        let targetX = centerX + Math.cos(this.angle) * this.radius;
+        let targetY = centerY + Math.sin(this.angle) * this.radius * 0.95;
+
+        // Subtle interactive mouse deflection
+        if (mouseX > 0 && mouseY > 0) {
+          const dx = targetX - mouseX;
+          const dy = targetY - mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            const force = (120 - dist) / 120;
+            targetX += (dx / dist) * force * 26;
+            targetY += (dy / dist) * force * 26;
+          }
+        }
+
+        this.currentX = targetX;
+        this.currentY = targetY;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.currentX, this.currentY, this.size, 0, Math.PI * 2);
+
+        if (currentState === 'active') {
+          ctx.fillStyle = `rgba(180, 240, 0, ${this.alpha * 1.3})`;
+          ctx.shadowColor = '#b4f000';
+          ctx.shadowBlur = 8;
+        } else if (currentState === 'preserved') {
+          ctx.fillStyle = `rgba(0, 240, 255, ${this.alpha * 1.2})`;
+          ctx.shadowColor = '#00f0ff';
+          ctx.shadowBlur = 8;
+        } else if (currentState === 'loading') {
+          ctx.fillStyle = `rgba(180, 240, 0, ${this.alpha * 0.9})`;
+          ctx.shadowColor = '#b4f000';
+          ctx.shadowBlur = 5;
+        } else {
+          ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * 0.45})`;
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+        }
+        ctx.fill();
+      }
+    }
+
+    function initCanvas() {
+      width = canvas.width = dropStage.offsetWidth || window.innerWidth;
+      height = canvas.height = dropStage.offsetHeight || 420;
+      centerX = width / 2;
+      centerY = height / 2;
+
+      particles.length = 0;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push(new Particle());
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw particle constellation connections
+      if (currentState === 'active' || currentState === 'loading' || currentState === 'preserved') {
+        const strokeColor = currentState === 'preserved' ? 'rgba(0, 240, 255,' : 'rgba(180, 240, 0,';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < particles.length; i += 6) {
+          for (let j = i + 1; j < particles.length; j += 6) {
+            const dx = particles[i].currentX - particles[j].currentX;
+            const dy = particles[i].currentY - particles[j].currentY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 60) {
+              ctx.strokeStyle = `${strokeColor} ${(1 - dist / 60) * 0.25})`;
+              ctx.beginPath();
+              ctx.moveTo(particles[i].currentX, particles[i].currentY);
+              ctx.lineTo(particles[j].currentX, particles[j].currentY);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', initCanvas);
+    setTimeout(initCanvas, 50);
+    animate();
+
+    // Power Button Click & Double Click Handling
+    const powerBtnContainer = document.getElementById('powerBtnContainer');
+
+    powerBtnContainer.addEventListener('click', (e) => {
+      if (currentState === 'active') {
+        if (!clickTimeout) {
+          clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            powerLabel.innerText = "Double-Click!";
+            setTimeout(() => {
+              if (currentState === 'active') powerLabel.innerText = "Wipe & Close";
+            }, 1200);
+          }, 300);
+        } else {
+          clearTimeout(clickTimeout);
+          clickTimeout = null;
+          executeWipeAndTerminate();
+        }
+      } else if (currentState === 'preserved') {
+        resumePreservedSession();
+      } else if (currentState === 'idle') {
+        if (!selectedAppPath) {
+          triggerFilePicker();
+        } else {
+          startIsolation(selectedAppPath);
+        }
+      }
+    });
+
+    function resumePreservedSession() {
+      setUiState('loading');
+      powerLabel.innerText = "Resuming...";
+      statusText.innerText = "Resuming Vault...";
+      window.chrome_backend?.reopenApp();
+    }
+
+    function onAppCardClick(e) {
+      if (currentState === 'active' || currentState === 'preserved') {
+        window.chrome_backend?.reopenOrFocusApp();
+      } else if (currentState === 'idle') {
+        if (selectedAppPath) {
+          startIsolation(selectedAppPath);
+        } else {
+          triggerFilePicker();
+        }
+      }
+    }
+
+    const appCardElem = document.getElementById('appCard');
+    if (appCardElem) {
+      appCardElem.addEventListener('dblclick', (e) => {
+        window.chrome_backend?.reopenOrFocusApp();
+      });
+    }
+
+    const appTitleElem = document.getElementById('appTitle');
+    if (appTitleElem) {
+      appTitleElem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onAppCardClick(e);
+      });
+    }
+
+    function triggerFilePicker() {
+      if (currentState === 'active' || currentState === 'preserved') return;
+      window.chrome_backend?.browseApp();
+    }
+
+    // Called from C# when a file is selected or dropped
+    window.onAppSelected = function(name, path) {
+      selectedAppPath = path;
+      appTitle.innerText = name;
+      appSub.innerText = path;
+      powerLabel.innerText = "Launch";
+      vaultTag.innerHTML = `<span>Ready</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+    };
+
+    window.onDragHover = function(isHovering) {
+      if (isHovering) {
+        dropStage.classList.add('drag-active');
+      } else {
+        dropStage.classList.remove('drag-active');
+      }
+    };
+
+    function startIsolation(path) {
+      if (!path) return;
+      setUiState('loading');
+      powerLabel.innerText = "Isolating...";
+      statusText.innerText = "Setting Up Vault...";
+      window.chrome_backend?.launchApp(path);
+    }
+
+    function executeWipeAndTerminate() {
+      setUiState('loading');
+      powerLabel.innerText = "Wiping...";
+      statusText.innerText = "Scrubbing Session...";
+      window.chrome_backend?.terminateAndWipe();
+    }
+
+    function openVaultExplorer() {
+      window.chrome_backend?.openVaultDirectory();
+    }
+
+    function openSaveBoxFolder() {
+      window.chrome_backend?.openSaveBoxDirectory();
+    }
+
+    function closeAllDrawers() {
+      closeSettings();
+      closeTaskManager();
+      closeVaultDrawer();
+      closePurgeConfirmModal();
+      closeDeleteConfirmModal();
+    }
+
+    function openPurgeConfirmModal() {
+      const modal = document.getElementById('purgeConfirmModal');
+      modal?.classList.add('open');
+    }
+
+    function closePurgeConfirmModal() {
+      const modal = document.getElementById('purgeConfirmModal');
+      modal?.classList.remove('open');
+    }
+
+    function confirmPurgeAction(yes) {
+      closePurgeConfirmModal();
+      if (yes) {
+        showNotification('success', 'Purging all vaults and SaveBox snapshots permanently...');
+        window.chrome_backend?.purgeAllVaultsConfirmed();
+      } else {
+        showNotification('success', 'Purge cancelled. SaveBox snapshots remain protected.');
+      }
+    }
+
+    function saveCurrentSession() {
+      if (currentState !== 'active' && currentState !== 'preserved') {
+        showNotification('error', 'No active session to save. Launch an app first!');
+        return;
+      }
+      showNotification('success', 'Capturing snapshot to SaveBox...');
+      window.chrome_backend?.saveToSaveBox();
+    }
+
+    function openVaultDrawer() {
+      closeSettings();
+      closeTaskManager();
+      const modal = document.getElementById('saveBoxModal');
+      modal?.classList.add('open');
+      document.getElementById('navVault')?.classList.add('active');
+      document.getElementById('navIsolate')?.classList.remove('active');
+      document.getElementById('navTasks')?.classList.remove('active');
+      document.getElementById('navSettings')?.classList.remove('active');
+      refreshVaultDrawerStatus();
+      refreshSaveBoxDrawerStatus();
+      refreshSaveBoxList();
+    }
+
+    function closeVaultDrawer() {
+      const modal = document.getElementById('saveBoxModal');
+      modal?.classList.remove('open');
+      document.getElementById('navVault')?.classList.remove('active');
+      document.getElementById('navIsolate')?.classList.add('active');
+    }
+
+    const openSaveBoxDrawer = openVaultDrawer;
+    const closeSaveBoxDrawer = closeVaultDrawer;
+
+    function refreshVaultDrawerStatus() {
+      const vaultCoreBadge = document.getElementById('vaultCoreBadge');
+      const vaultSessionText = document.getElementById('vaultSessionText');
+      const appName = currentTelemetry?.appName || (selectedAppPath ? selectedAppPath.split('\\').pop() : '');
+      
+      if (currentState === 'active') {
+        if (vaultCoreBadge) {
+          vaultCoreBadge.innerText = 'ISOLATED';
+          vaultCoreBadge.style.color = 'var(--accent-green)';
+          vaultCoreBadge.style.borderColor = 'var(--accent-green)';
+          vaultCoreBadge.style.background = 'rgba(180, 240, 0, 0.12)';
+        }
+        if (vaultSessionText) {
+          vaultSessionText.innerHTML = `Active Session: <strong style="color:#fff;">${escapeHtml(appName)}</strong><br><span style="font-size:10.5px; color:var(--text-dim);">Live user-mode ephemeral sandbox redirection active.</span>`;
+        }
+      } else if (currentState === 'preserved') {
+        if (vaultCoreBadge) {
+          vaultCoreBadge.innerText = 'PRESERVED';
+          vaultCoreBadge.style.color = 'var(--accent-cyan)';
+          vaultCoreBadge.style.borderColor = 'var(--accent-cyan)';
+          vaultCoreBadge.style.background = 'rgba(0, 240, 255, 0.12)';
+        }
+        if (vaultSessionText) {
+          vaultSessionText.innerHTML = `Preserved Session: <strong style="color:#fff;">${escapeHtml(appName)}</strong><br><span style="font-size:10.5px; color:var(--text-dim);">App window closed, files preserved in ephemeral vault.</span>`;
+        }
+      } else {
+        if (vaultCoreBadge) {
+          vaultCoreBadge.innerText = 'ZERO-TRACE';
+          vaultCoreBadge.style.color = 'var(--accent-cyan)';
+          vaultCoreBadge.style.borderColor = 'var(--accent-cyan)';
+          vaultCoreBadge.style.background = 'rgba(0, 240, 255, 0.1)';
+        }
+        if (vaultSessionText) {
+          vaultSessionText.innerHTML = 'Standby <span style="font-size:10.5px; color:var(--text-dim);">(No active ephemeral vault mounted)</span>';
+        }
+      }
+    }
+
+    function refreshSaveBoxDrawerStatus() {
+      const liveBadge = document.getElementById('saveBoxLiveBadge');
+      const activeText = document.getElementById('saveBoxActiveText');
+      const saveBtn = document.getElementById('saveCurrentSessionBtn');
+      if (!liveBadge || !activeText || !saveBtn) return;
+
+      const appName = currentTelemetry?.appName || (selectedAppPath ? selectedAppPath.split('\\').pop() : 'Isolated App');
+
+      if (currentState === 'active') {
+        liveBadge.innerText = 'ISOLATED & ACTIVE';
+        liveBadge.style.color = 'var(--accent-green)';
+        liveBadge.style.borderColor = 'var(--accent-green)';
+        activeText.innerHTML = `Active App: <strong style="color:#fff;">${escapeHtml(appName)}</strong><br><span style="font-size:11px; color:var(--text-dim);">Ready to save full profile snapshot to SaveBox. Wiping this session will NOT touch your saved snapshot.</span>`;
+        saveBtn.style.opacity = '1';
+        saveBtn.style.pointerEvents = 'auto';
+      } else if (currentState === 'preserved') {
+        liveBadge.innerText = 'PRESERVED (CLOSED)';
+        liveBadge.style.color = 'var(--accent-cyan)';
+        liveBadge.style.borderColor = 'var(--accent-cyan)';
+        activeText.innerHTML = `Preserved App: <strong style="color:#fff;">${escapeHtml(appName)}</strong><br><span style="font-size:11px; color:var(--text-dim);">Session data is waiting in vault. Click below to save permanently to SaveBox.</span>`;
+        saveBtn.style.opacity = '1';
+        saveBtn.style.pointerEvents = 'auto';
+      } else {
+        liveBadge.innerText = 'IDLE';
+        liveBadge.style.color = 'var(--text-dim)';
+        liveBadge.style.borderColor = 'rgba(255,255,255,0.2)';
+        activeText.innerText = 'No isolated session currently active. Launch an application from the Dashboard to snapshot it.';
+        saveBtn.style.opacity = '0.5';
+        saveBtn.style.pointerEvents = 'none';
+      }
+    }
+
+    let allSnapshots = [];
+    function refreshSaveBoxList() {
+      const container = document.getElementById('saveBoxListContainer');
+      if (container) container.innerHTML = '<div class="proc-loading-state">Loading SaveBox snapshots...</div>';
+      window.chrome_backend?.getSaveBoxSnapshots();
+    }
+
+    window.onSaveBoxLoaded = function(list) {
+      allSnapshots = Array.isArray(list) ? list : [];
+      const countElem = document.getElementById('saveBoxCount');
+      if (countElem) countElem.innerText = allSnapshots.length;
+      renderSaveBoxList();
+    };
+
+    function renderSaveBoxList() {
+      const container = document.getElementById('saveBoxListContainer');
+      if (!container) return;
+
+      if (!allSnapshots || allSnapshots.length === 0) {
+        container.innerHTML = '<div class="proc-empty-state">No snapshots saved in SaveBox yet.<br><span style="font-size:11.5px; opacity:0.75; margin-top:4px; display:inline-block;">Click "Save Current Session to SaveBox" during any isolated app session!</span></div>';
+        return;
+      }
+
+      let html = '';
+      allSnapshots.forEach(snap => {
+        const safeName = escapeHtml(snap.appName || snap.AppName || 'Unknown');
+        const safePath = snap.appPath || snap.AppPath || '';
+        const safeDate = escapeHtml(snap.savedAt || snap.SavedAt || 'Recently');
+        const sizeMb = snap.sizeMb !== undefined ? snap.sizeMb : (snap.SizeMb || 0);
+
+        html += `
+          <div class="savebox-card">
+            <div style="display:flex; align-items:center; gap:11px; min-width:0; flex:1;">
+              <div class="savebox-avatar" title="SaveBox Snapshot">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <div style="display:flex; flex-direction:column; min-width:0; overflow:hidden;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="font-size:13px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:145px;" title="${safeName}">${safeName}</span>
+                  <span style="font-size:10px; font-family:monospace; background:rgba(180,240,0,0.12); color:var(--accent-green); border:1px solid rgba(180,240,0,0.25); padding:1px 6px; border-radius:6px; flex-shrink:0;">${sizeMb} MB</span>
+                </div>
+                <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Saved ${safeDate}</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; margin-left:10px;">
+              <button class="savebox-run-btn" onclick="launchSnapshot('${escapeJsString(safePath)}', '${escapeJsString(safeName)}')">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Restore & Run
+              </button>
+              <button class="savebox-del-btn" title="Delete Snapshot from SaveBox" onclick="deleteSnapshot('${escapeJsString(safeName)}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function launchSnapshot(path, name) {
+      closeVaultDrawer();
+      if (!path) {
+        showNotification('error', 'Original executable path not stored for ' + name + '. Use Browse to select executable.');
+        triggerFilePicker();
+        return;
+      }
+      showNotification('success', 'Pre-seeding SaveBox snapshot & launching ' + name + '...');
+      window.chrome_backend?.launchSaveBoxSnapshot(path);
+    }
+
+    let snapshotNameToDelete = null;
+
+    function deleteSnapshot(name) {
+      snapshotNameToDelete = name;
+      const textElem = document.getElementById('deleteConfirmText');
+      if (textElem) {
+        textElem.innerHTML = `Are you sure you want to permanently delete the SaveBox snapshot for <strong style="color:#fff;">${escapeHtml(name)}</strong>?<br><span style="font-size:11px; color:var(--text-dim); margin-top:4px; display:inline-block;">This will permanently wipe this snapshot archive from your disk.</span>`;
+      }
+      const modal = document.getElementById('deleteConfirmModal');
+      modal?.classList.add('open');
+    }
+
+    function confirmDeleteSnapshot() {
+      if (snapshotNameToDelete) {
+        window.chrome_backend?.deleteSaveBoxSnapshot(snapshotNameToDelete);
+        showNotification('success', `Removing ${snapshotNameToDelete} snapshot...`);
+        snapshotNameToDelete = null;
+      }
+      closeDeleteConfirmModal();
+    }
+
+    function closeDeleteConfirmModal() {
+      const modal = document.getElementById('deleteConfirmModal');
+      modal?.classList.remove('open');
+      snapshotNameToDelete = null;
+    }
+
+    function openSettings() {
+      closeTaskManager();
+      closeVaultDrawer();
+      window.chrome_backend?.getContextMenuStatus();
+      settingsModal.classList.add('open');
+      document.getElementById('navSettings').classList.add('active');
+      document.getElementById('navIsolate').classList.remove('active');
+      document.getElementById('navTasks').classList.remove('active');
+      document.getElementById('navVault')?.classList.remove('active');
+      document.getElementById('navSaveBox')?.classList.remove('active');
+    }
+
+    function closeSettings() {
+      settingsModal.classList.remove('open');
+      document.getElementById('navSettings').classList.remove('active');
+      document.getElementById('navIsolate').classList.add('active');
+    }
+
+    /* Process Task Manager Logic */
+    let allProcesses = [];
+    let currentProcessFilter = 'apps'; // 'apps' | 'all'
+
+    function openTaskManager() {
+      closeSettings();
+      closeVaultDrawer();
+      const modal = document.getElementById('taskManagerModal');
+      modal.classList.add('open');
+      document.getElementById('navTasks').classList.add('active');
+      document.getElementById('navIsolate').classList.remove('active');
+      document.getElementById('navSettings').classList.remove('active');
+      document.getElementById('navVault')?.classList.remove('active');
+      document.getElementById('navSaveBox')?.classList.remove('active');
+      refreshProcessList();
+    }
+
+    function closeTaskManager() {
+      const modal = document.getElementById('taskManagerModal');
+      modal.classList.remove('open');
+      document.getElementById('navTasks').classList.remove('active');
+      document.getElementById('navIsolate').classList.add('active');
+    }
+
+    function refreshProcessList() {
+      const container = document.getElementById('processListContainer');
+      container.innerHTML = '<div class="proc-loading-state">Scanning active system processes...</div>';
+      window.chrome_backend?.getRunningProcesses();
+    }
+
+    window.onProcessesLoaded = function(list) {
+      allProcesses = Array.isArray(list) ? list : [];
+      updateProcessCounts();
+      renderProcessList();
+    };
+
+    function setProcessFilter(filter) {
+      currentProcessFilter = filter;
+      document.getElementById('tabApps').classList.toggle('active', filter === 'apps');
+      document.getElementById('tabAll').classList.toggle('active', filter === 'all');
+      renderProcessList();
+    }
+
+    function updateProcessCounts() {
+      const appsCount = allProcesses.filter(p => p.hasWindow).length;
+      document.getElementById('countApps').innerText = appsCount;
+      document.getElementById('countAll').innerText = allProcesses.length;
+    }
+
+    function filterProcessList() {
+      renderProcessList();
+    }
+
+    function renderProcessList() {
+      const container = document.getElementById('processListContainer');
+      const search = (document.getElementById('taskSearchInput')?.value || '').toLowerCase().trim();
+
+      let filtered = allProcesses.filter(p => {
+        if (currentProcessFilter === 'apps' && !p.hasWindow) return false;
+        if (search) {
+          const matchName = (p.name || '').toLowerCase().includes(search);
+          const matchTitle = (p.title || '').toLowerCase().includes(search);
+          const matchPid = (p.pid || '').toString().includes(search);
+          const matchPath = (p.exePath || '').toLowerCase().includes(search);
+          if (!matchName && !matchTitle && !matchPid && !matchPath) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="proc-empty-state">No matching processes found.</div>';
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(p => {
+        const safeName = escapeHtml(p.name);
+        const safeTitle = escapeHtml(p.title || p.name);
+        const avatarLetter = (p.name.charAt(0) || 'P').toUpperCase();
+
+        html += `
+          <div class="process-card">
+            <div class="process-card-info">
+              <div class="process-avatar">${avatarLetter}</div>
+              <div class="process-meta">
+                <div class="process-name-row">
+                  <span class="process-name" title="${safeName}">${safeName}</span>
+                  <span class="process-pid">#${p.pid}</span>
+                </div>
+                <div class="process-title" title="${safeTitle}">${safeTitle}</div>
+              </div>
+            </div>
+            <div class="process-card-actions">
+              <span class="process-ram">${p.memMb} MB</span>
+              <button class="isolate-proc-btn" onclick="isolateSelectedProcess(${p.pid}, '${escapeJsString(p.exePath)}', '${escapeJsString(p.name)}')">
+                Isolate & Run
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function isolateSelectedProcess(pid, path, name) {
+      if (!path) {
+        showNotification('error', 'Cannot resolve path for process #' + pid);
+        return;
+      }
+      closeTaskManager();
+      showNotification('success', 'Launching ' + name + ' in Isolated Mode...');
+      window.chrome_backend?.isolateRunningProcess(pid, path);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escapeJsString(str) {
+      if (!str) return '';
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    // Toast Notification (Never Freeze)
+    function showNotification(type, msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = msg;
+
+      toast.className = 'toast show ' + (type === 'success' ? 'success' : '');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        hideNotification();
+      }, 4500);
+    }
+    window.showNotification = showNotification;
+
+    function hideNotification() {
+      const toast = document.getElementById('toast');
+      toast.classList.remove('show');
+    }
+
+    function setUiState(state) {
+      currentState = state;
+
+      powerBtn.classList.remove('active', 'loading', 'preserved');
+      statusDot.classList.remove('active', 'preserved');
+      sessionTimer.classList.remove('active', 'preserved');
+      vaultTag.classList.remove('active', 'preserved');
+
+      const hudStatusDot = document.getElementById('hudStatusDot');
+      const hudStatusText = document.getElementById('hudStatusText');
+      const hudModeText = document.getElementById('hudModeText');
+      const timerText = document.getElementById('timerText');
+      const metricsContainer = document.getElementById('metricsContainer');
+
+      if (state === 'idle') {
+        powerLabel.innerText = selectedAppPath ? "Launch" : "Drop App";
+        statusText.innerText = "Not Isolated";
+        if (hudStatusText) hudStatusText.innerText = "STANDBY • ZERO-TRACE";
+        if (hudStatusDot) hudStatusDot.className = "hud-status-dot";
+        if (timerText) timerText.innerText = "00:00:00";
+        if (hudModeText) {
+          hudModeText.innerText = "EPHEMERAL";
+          hudModeText.style.color = "#64748b";
+        }
+        metricsContainer?.classList.remove('active');
+        ramText.innerText = "0 MB";
+        cpuText.innerText = "0%";
+        appSub.innerText = "Drop shortcut (.lnk) or .exe directly here";
+        vaultTag.innerHTML = `<span>Browse</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+      } else if (state === 'loading') {
+        powerBtn.classList.add('loading');
+        if (hudStatusText) hudStatusText.innerText = "INITIALIZING CONTAINER...";
+        metricsContainer?.classList.add('active');
+      } else if (state === 'active') {
+        powerBtn.classList.add('active');
+        statusDot.classList.add('active');
+        sessionTimer.classList.add('active');
+        vaultTag.classList.add('active');
+        metricsContainer?.classList.add('active');
+        powerLabel.innerText = "Wipe & Close";
+        statusText.innerText = "Isolated & Active";
+
+        if (hudStatusText) hudStatusText.innerText = "AIR-GAP ISOLATION: ACTIVE";
+        if (hudStatusDot) hudStatusDot.className = "hud-status-dot active";
+        if (hudModeText) {
+          hudModeText.innerText = currentTelemetry?.hasSnapshot ? "SAVEBOX SYNCED" : "EPHEMERAL CORE";
+          hudModeText.style.color = "var(--accent-green)";
+        }
+
+        const syncedTag = currentTelemetry?.hasSnapshot 
+          ? '<span style="font-size:10px; color:var(--accent-green); background:rgba(180,240,0,0.12); border:1px solid rgba(180,240,0,0.3); padding:2px 7px; border-radius:6px;">SaveBox</span>' 
+          : '';
+
+        vaultTag.innerHTML = `
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${syncedTag}
+            <button class="save-btn-pill" onclick="event.stopPropagation(); saveCurrentSession();" title="Save snapshot to SaveBox">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:3px; vertical-align:-1px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Save
+            </button>
+            <span style="color:var(--accent-green); font-weight:700;">Active</span>
+          </div>`;
+      } else if (state === 'preserved') {
+        powerBtn.classList.add('preserved');
+        statusDot.classList.add('preserved');
+        sessionTimer.classList.add('preserved');
+        vaultTag.classList.add('preserved');
+        metricsContainer?.classList.remove('active');
+        powerLabel.innerText = "Reopen";
+        statusText.innerText = "Vault Preserved (Closed)";
+
+        if (hudStatusText) hudStatusText.innerText = "VAULT PRESERVED (PAUSED)";
+        if (hudStatusDot) hudStatusDot.className = "hud-status-dot preserved";
+        if (hudModeText) {
+          hudModeText.innerText = currentTelemetry?.hasSnapshot ? "SAVEBOX PRESERVED" : "VAULT PRESERVED";
+          hudModeText.style.color = "var(--accent-cyan)";
+        }
+
+        ramText.innerText = "0 MB";
+        cpuText.innerText = "0%";
+        appSub.innerText = "Session preserved in vault • Double-click or click Reopen";
+
+        const syncedTag = currentTelemetry?.hasSnapshot 
+          ? '<span style="font-size:10px; color:var(--accent-cyan); background:rgba(0,240,255,0.12); border:1px solid rgba(0,240,255,0.3); padding:2px 7px; border-radius:6px;">SaveBox</span>' 
+          : '';
+
+        vaultTag.innerHTML = `
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${syncedTag}
+            <button class="wipe-btn-pill" onclick="event.stopPropagation(); executeWipeAndTerminate();" title="Wipe Vault Clean">Wipe</button>
+            <button class="save-btn-pill" onclick="event.stopPropagation(); saveCurrentSession();" title="Save snapshot to SaveBox">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:3px; vertical-align:-1px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Save
+            </button>
+            <span style="color:var(--accent-cyan); font-weight:700;">Preserved</span>
+          </div>`;
+      }
+      refreshVaultDrawerStatus();
+      refreshSaveBoxDrawerStatus();
+    }
+
+    // Called from C# via CoreWebView2.ExecuteScriptAsync
+    window.updateTelemetry = function(data) {
+      currentTelemetry = data;
+      if (currentState !== 'active') {
+        setUiState('active');
+      }
+
+      if (data.appName) appTitle.innerText = data.appName;
+      if (data.elapsed) {
+        const timerText = document.getElementById('timerText');
+        if (timerText) timerText.innerText = data.elapsed;
+      }
+      if (data.ramMb !== undefined) ramText.innerText = data.ramMb + " MB";
+      if (data.cpuPercent !== undefined) cpuText.innerText = data.cpuPercent + "%";
+      
+      const hudModeText = document.getElementById('hudModeText');
+      if (hudModeText) {
+        hudModeText.innerText = data.hasSnapshot ? "SAVEBOX SYNCED" : "EPHEMERAL CORE";
+        hudModeText.style.color = "var(--accent-green)";
+      }
+
+      const saveBoxSync = data.hasSnapshot ? " • [SaveBox Synced]" : "";
+      if (data.pid) appSub.innerText = `PID: ${data.pid}${saveBoxSync} • Zero-Trace Ephemeral Vault`;
+
+      refreshVaultDrawerStatus();
+      refreshSaveBoxDrawerStatus();
+    };
+
+    window.onSessionPaused = function(appName) {
+      setUiState('preserved');
+      refreshVaultDrawerStatus();
+      refreshSaveBoxDrawerStatus();
+      showNotification('success', `${appName} window closed. Vault session preserved! Click Reopen to resume or Wipe to scrub.`);
+    };
+
+    window.onSessionTerminated = function() {
+      currentTelemetry = null;
+      setUiState('idle');
+      refreshVaultDrawerStatus();
+      refreshSaveBoxDrawerStatus();
+      showNotification('success', 'Isolated session closed & vault scrubbed clean.');
+    };
+  </script>
+</body>
+</html>

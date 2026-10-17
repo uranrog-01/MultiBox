@@ -1,0 +1,7 @@
+# consent.exe function count: 849
+HIT: FUN_140003c30 @ 140003c30 -> WinVerifyTrust
+HIT: FUN_140006b30 @ 140006b30 -> RegGetValue
+HIT: FUN_14000a330 @ 14000a330 -> WinVerifyTrust
+HIT: FUN_14000cff0 @ 14000cff0 -> RegGetValue
+HIT: FUN_140013eb4 @ 140013eb4 -> RegGetValue
+HIT: FUN_14001474c @ 14001474c -> RegGetValue

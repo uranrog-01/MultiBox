@@ -1,0 +1,27 @@
+{
+  "errors": [],
+  "layouts": [
+    {
+      "navBottom": 959,
+      "actionsRight": 548,
+      "width": 620,
+      "height": 960,
+      "stageHeight": 375
+    },
+    {
+      "navBottom": 769,
+      "actionsRight": 408,
+      "width": 470,
+      "height": 770,
+      "stageHeight": 301
+    },
+    {
+      "navBottom": 599,
+      "actionsRight": 342,
+      "width": 400,
+      "height": 600,
+      "stageHeight": 209
+    }
+  ],
+  "checks": "Session switching, per-instance telemetry, click identity, targeted wipe/save/duplicate/reopen, fresh vs saved state, stale update rejection, non-destructive saved launches and captured bulk IDs passed."
+}
