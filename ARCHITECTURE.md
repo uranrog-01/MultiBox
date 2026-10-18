@@ -1,5 +1,8 @@
 # MultiBox Architecture & Technical Internals ⚙️
 
+> **Author & Lead Architect**: [zer0ne](https://github.com/uranrog-01)  
+> **Platform**: Windows 10 / 11 (x64) | .NET 10.0 Native Single-File
+
 This document describes the underlying architecture, low-level Win32 integration, process containment, and snapshot mechanics used by MultiBox.
 
 ---

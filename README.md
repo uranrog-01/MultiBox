@@ -1,10 +1,14 @@
 <div align="center">
 
+<a href="https://github.com/uranrog-01">
+  <img src="docs/assets/zer0ne-banner.png" alt="zer0ne - Project Creator & Author" width="850" style="border-radius: 12px; margin-bottom: 20px;" />
+</a>
+
 # MultiBox 🛡️
 
 ### **Run any Windows app multiple times concurrently — 100% isolated.**
 
-*No shared logins. No shared cookies. Every instance runs as if freshly installed on a brand-new PC.*
+*Architected & Created by [**zer0ne**](https://github.com/uranrog-01) — No shared logins. No shared cookies. Brand-new PC environment for every instance.*
 
 ---
 
@@ -13,7 +17,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg?style=for-the-badge)](https://dotnet.microsoft.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-x64-black.svg?style=for-the-badge)]()
 [![Latest Release](https://img.shields.io/github/v/release/uranrog-01/MultiBox?color=green&style=for-the-badge)](https://github.com/uranrog-01/MultiBox/releases/latest)
-[![Author](https://img.shields.io/badge/Author-zer0ne-success.svg?style=for-the-badge)](https://github.com/uranrog-01)
+[![Author](https://img.shields.io/badge/Author-zer0ne-ff6b00.svg?style=for-the-badge&logo=github)](https://github.com/uranrog-01)
 
 <br/>
 
@@ -143,6 +147,22 @@ MultiBox is powered by low-level **Windows Job Objects**, **SQLite Write-Ahead L
 For a comprehensive technical breakdown of the process containment models, security boundaries, and snapshot protocols:
 
 👉 [**Read the Architecture & Technical Internals Guide (`ARCHITECTURE.md`)**](ARCHITECTURE.md)
+
+---
+
+## 👨‍💻 Creator & Author
+
+<div align="center">
+
+**MultiBox** is engineered and maintained by **[zer0ne](https://github.com/uranrog-01)**.
+
+[![GitHub Profile](https://img.shields.io/badge/GitHub-uranrog--01-181717?style=for-the-badge&logo=github)](https://github.com/uranrog-01)
+[![Author](https://img.shields.io/badge/Author-zer0ne-ff6b00?style=for-the-badge&logo=github&logoColor=white)](https://github.com/uranrog-01)
+[![Follow on GitHub](https://img.shields.io/github/followers/uranrog-01?style=for-the-badge&logo=github&label=Follow%20%40uranrog--01)](https://github.com/uranrog-01)
+
+*Specializing in low-level Windows systems architecture, process containment, and high-performance native tooling.*
+
+</div>
 
 ---
 
