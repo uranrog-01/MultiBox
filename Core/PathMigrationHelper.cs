@@ -123,8 +123,8 @@ namespace MultiBox.Core
                 string newUnix = newProfilePath.Replace('\\', '/');
                 string newEscaped = newProfilePath.Replace("\\", "\\\\");
 
-                // Pattern to match any C:\...\AppData\Local\MultiBox\Vaults\<12-hex-id>
-                var regex = new Regex(@"([a-zA-Z]:[\\/][^""'\r\n]+[\\/]AppData[\\/]Local[\\/]MultiBox[\\/]Vaults[\\/])([a-fA-F0-9]{12})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                // Pattern to match any C:\...\AppData\Local\MultiBox\Vaults\<12-hex-id> or SaveBox\<id>\Data
+                var regex = new Regex(@"([a-zA-Z]:[\\/][^""'\r\n]+[\\/]AppData[\\/]Local[\\/]MultiBox[\\/]Vaults[\\/](?:SaveBox[\\/][a-fA-F0-9]{32}[\\/]Data|[a-fA-F0-9]{12}))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
                 var dirInfo = new DirectoryInfo(targetDataDir);
                 foreach (var file in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
@@ -144,9 +144,6 @@ namespace MultiBox.Core
                                 foreach (Match m in matches)
                                 {
                                     string matchedOld = m.Value.TrimEnd('\\', '/');
-                                    // Ensure junction for backward compatibility
-                                    EnsureDirectoryJunction(matchedOld, newProfilePath);
-
                                     string mWin = matchedOld.Replace('/', '\\');
                                     string mUnix = matchedOld.Replace('\\', '/');
                                     string mEsc = mWin.Replace("\\", "\\\\");

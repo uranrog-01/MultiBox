@@ -183,7 +183,6 @@ public static class SaveBoxManager
                 try { Directory.Move(staging, target); }
                 catch { if (backup != null && !Directory.Exists(target)) Directory.Move(backup, target); throw; }
                 _cache = null;
-                try { PathMigrationHelper.EnsureDirectoryJunction(vault, finalData); } catch { }
                 if (backup != null) { try { EphemeralVault.DeleteTree(backup); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
                 return true;
             }
@@ -203,7 +202,6 @@ public static class SaveBoxManager
             Directory.CreateDirectory(dataPath);
             if (!string.IsNullOrWhiteSpace(profile.OriginalVaultPath))
             {
-                PathMigrationHelper.EnsureDirectoryJunction(profile.OriginalVaultPath, dataPath);
                 PathMigrationHelper.MigrateVaultPaths(dataPath, profile.OriginalVaultPath, dataPath);
             }
             PathMigrationHelper.MigrateAnyOldVaultPaths(dataPath, dataPath);
@@ -310,10 +308,6 @@ public static class SaveBoxManager
                 SyncDirectories(vaultPath, destData, vaultPath);
 
                 PathMigrationHelper.MigrateVaultPaths(destData, vaultPath, destData);
-                if (!string.IsNullOrWhiteSpace(profile.OriginalVaultPath))
-                {
-                    PathMigrationHelper.EnsureDirectoryJunction(profile.OriginalVaultPath, destData);
-                }
 
                 profile.SavedAt = DateTime.Now.ToString("MMM dd, yyyy • h:mm tt");
                 profile.SizeMb = CalculateDirectorySizeMb(destData);

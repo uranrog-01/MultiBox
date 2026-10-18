@@ -216,7 +216,6 @@ namespace MultiBox.Core
                                 {
                                     if (!string.IsNullOrWhiteSpace(savedProf.OriginalVaultPath))
                                     {
-                                        PathMigrationHelper.EnsureDirectoryJunction(savedProf.OriginalVaultPath, _vault.RootPath);
                                         PathMigrationHelper.MigrateVaultPaths(_vault.RootPath, savedProf.OriginalVaultPath, _vault.RootPath);
                                     }
                                     PathMigrationHelper.MigrateAnyOldVaultPaths(_vault.RootPath, _vault.RootPath);

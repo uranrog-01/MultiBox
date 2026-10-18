@@ -38,7 +38,11 @@ internal static class LiveProfileSnapshot
     private static long CopyDirectory(string source, string destination, string root, string profileRoot, List<string> regenerated, List<BlockedFile> blocked, bool sourceClosed)
     {
         var directory = new DirectoryInfo(source);
-        if (!directory.Exists) throw new DirectoryNotFoundException(source);
+        if (!directory.Exists)
+        {
+            if (string.Equals(source, root, StringComparison.OrdinalIgnoreCase)) throw new DirectoryNotFoundException(source);
+            return 0;
+        }
         if ((directory.Attributes & FileAttributes.ReparsePoint) != 0) return 0;
         bool levelDb = File.Exists(Path.Combine(source, "CURRENT")) && directory.EnumerateFiles("MANIFEST-*").Any();
         for (int attempt = 0; ; attempt++)
@@ -62,16 +66,22 @@ internal static class LiveProfileSnapshot
                 var unreadable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var file in files)
                 {
-                    if (IsMarker(file, root, levelDb) || IsSidecarName(file.Name)) continue;
+                    if (!File.Exists(file.FullName) || IsMarker(file, root, levelDb) || IsSidecarName(file.Name)) continue;
                     if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
                     try { if (WithRetry(() => HasSqliteHeader(file.FullName))) databases.Add(file.Name); }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                    { unreadable.Add(file.Name); blocked.Add(FileFailure(root, file.FullName, ex)); }
+                    {
+                        if (File.Exists(file.FullName))
+                        {
+                            unreadable.Add(file.Name);
+                            blocked.Add(FileFailure(root, file.FullName, ex));
+                        }
+                    }
                 }
                 long bytes = 0;
                 foreach (var file in files.OrderBy(file => file.Name.Equals("CURRENT", StringComparison.OrdinalIgnoreCase) ? 1 : 0))
                 {
-                    if (unreadable.Contains(file.Name) || IsMarker(file, root, levelDb) || IsCapturedSidecar(file.Name, databases)) continue;
+                    if (!File.Exists(file.FullName) || unreadable.Contains(file.Name) || IsMarker(file, root, levelDb) || IsCapturedSidecar(file.Name, databases)) continue;
                     string target = Path.Combine(destination, file.Name);
                     if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
                     try
@@ -86,17 +96,28 @@ internal static class LiveProfileSnapshot
                         }
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException)
-                    { blocked.Add(FileFailure(root, file.FullName, ex)); }
+                    {
+                        if (File.Exists(file.FullName))
+                        {
+                            blocked.Add(FileFailure(root, file.FullName, ex));
+                        }
+                    }
                 }
                 if (before != null && before != LevelDbMetadata(source))
                     throw new IOException("The app reorganized its profile database while saving. Please try Save again; your app is still open.");
                 foreach (var child in directory.GetDirectories())
                 {
+                    if (!child.Exists || (child.Attributes & FileAttributes.ReparsePoint) != 0) continue;
                     string relative = Path.GetRelativePath(root, child.FullName);
                     if (SaveBoxManager.ExcludeGeneratedFolder(relative) || IsBrowserCache(relative, profileRoot)) continue;
                     try { bytes += CopyDirectory(child.FullName, Path.Combine(destination, child.Name), root, profileRoot, regenerated, blocked, sourceClosed); }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                    { blocked.Add(FileFailure(root, child.FullName, ex)); }
+                    {
+                        if (Directory.Exists(child.FullName))
+                        {
+                            blocked.Add(FileFailure(root, child.FullName, ex));
+                        }
+                    }
                 }
                 return bytes;
             }
