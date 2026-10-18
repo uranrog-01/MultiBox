@@ -1,0 +1,85 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+    @font-face { font-family: "JetBrains Mono"; src: url("assets/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+    #root { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; }
+    .c01-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 50% 44%, #1a0d04 0%, #050403 55%, #000 100%); }
+    .c01-streak { position: absolute; left: 50%; top: 44%; width: 1100px; height: 3px; margin: -1.5px 0 0 -550px; border-radius: 3px;
+      background: linear-gradient(90deg, rgba(255,122,26,0) 0%, rgba(255,122,26,0.95) 70%, #ffd7a8 100%); box-shadow: 0 0 18px 2px rgba(255,122,26,0.65); }
+    .c01-glow { position: absolute; left: 50%; top: 44%; width: 1300px; height: 640px; margin: -320px 0 0 -650px; border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(255,122,26,0.38) 0%, rgba(255,122,26,0.12) 40%, rgba(255,122,26,0) 70%); }
+    .c01-banner-wrap { position: absolute; left: 410px; top: 292px; width: 1100px; height: 366px; overflow: hidden; }
+    .c01-banner { display: block; width: 1100px; height: 366px; }
+    .c01-sweep { position: absolute; top: -20%; left: 0; width: 220px; height: 140%;
+      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,240,220,0.55) 50%, rgba(255,255,255,0) 100%); mix-blend-mode: screen; }
+    .c01-bin { position: absolute; top: 250px; display: grid; gap: 10px; font-family: "JetBrains Mono", monospace; font-size: 22px; letter-spacing: 6px; color: rgba(255,122,26,0.55); perspective: 400px; }
+    .c01-bin span { display: inline-block; transform-origin: 50% 50%; }
+    .c01-bin-left { left: 96px; }
+    .c01-bin-right { right: 96px; text-align: right; }
+    .c01-presents { position: absolute; left: 0; right: 0; top: 700px; text-align: center; font-family: "Inter", sans-serif; font-weight: 600;
+      font-size: 26px; letter-spacing: 0.62em; color: #c9b8a6; }
+  </style>
+
+  <div data-hf-id="hf-zv46" id="root" data-composition-id="01-creator" data-width="1920" data-height="1080" data-duration="4.1">
+    <div data-hf-id="hf-oeez" id="c01-bg-layer" class="c01-bg clip" data-start="0" data-duration="4.1" data-track-index="0"></div>
+    <div data-hf-id="hf-82u6" class="c01-glow" id="c01-glow"></div>
+    <div data-hf-id="hf-r1eo" class="c01-bin c01-bin-left" id="c01-bin-left"></div>
+    <div data-hf-id="hf-e3a6" class="c01-bin c01-bin-right" id="c01-bin-right"></div>
+    <div data-hf-id="hf-qvfm" class="c01-banner-wrap" id="c01-banner-wrap">
+      <img data-hf-id="hf-df6r" class="c01-banner" id="c01-banner" src="assets/zer0ne-banner.png" alt="zer0ne" />
+      <div data-hf-id="hf-bfyo" class="c01-sweep" id="c01-sweep"></div>
+    </div>
+    <div data-hf-id="hf-k7qc" class="c01-streak" id="c01-streak-a"></div>
+    <div data-hf-id="hf-svm7" class="c01-streak" id="c01-streak-b"></div>
+    <div data-hf-id="hf-pzju" class="c01-presents" id="c01-presents"></div>
+  </div>
+
+  <script>
+    (() => {
+      // Deterministic binary columns: fixed strings, no randomness.
+      const rows = ["01001110", "10110101", "00101101", "11010010", "01110001", "10001011", "01011100", "11100100"];
+      const build = (id) => {
+        const el = document.getElementById(id);
+        rows.forEach((r) => {
+          const line = document.createElement("div");
+          [...r].forEach((ch) => { const s = document.createElement("span"); s.textContent = ch; line.appendChild(s); });
+          el.appendChild(line);
+        });
+        return el.querySelectorAll("span");
+      };
+      const presents = document.getElementById("c01-presents");
+      const letters = [..."PRESENTS"].map((ch) => { const s = document.createElement("span"); s.textContent = ch; s.style.display = "inline-block"; presents.appendChild(s); return s; });
+      const left = build("c01-bin-left");
+      const right = build("c01-bin-right");
+
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1 (0.0–0.8s): two streaks race in from opposite corners and cross at center, motion-blurred.
+      tl.fromTo("#c01-streak-a", { x: -1400, y: -700, rotation: 27, opacity: 1, filter: "blur(6px)", scaleX: 1.6 },
+        { x: 0, y: 0, rotation: 27, filter: "blur(0px)", scaleX: 1, duration: 0.8, ease: "power3.out" }, 0);
+      // Second streak flies in from the top-right along the other diagonal; 153° keeps its bright head leading.
+      tl.fromTo("#c01-streak-b", { x: 1400, y: -700, rotation: 153, opacity: 1, filter: "blur(6px)", scaleX: 1.6 },
+        { x: 0, y: 0, rotation: 153, filter: "blur(0px)", scaleX: 1, duration: 0.8, ease: "power3.out" }, 0);
+
+      // Scene 2 (0.8–1.8s): banner revealed through a widening horizontal light slit; glow blooms behind.
+      tl.fromTo("#c01-banner-wrap", { clipPath: "inset(50% 0% 50% 0%)", opacity: 1 },
+        { clipPath: "inset(0% 0% 0% 0%)", duration: 0.85, ease: "power3.inOut" }, 0.8);
+      tl.fromTo("#c01-banner", { filter: "brightness(2.2)" }, { filter: "brightness(1)", duration: 1.0, ease: "power2.out" }, 0.8);
+      tl.fromTo("#c01-glow", { opacity: 0, scale: 0.55 }, { opacity: 1, scale: 1, duration: 1.0, ease: "power3.out" }, 0.8);
+      tl.to(["#c01-streak-a", "#c01-streak-b"], { opacity: 0.22, scaleX: 1.35, duration: 0.9, ease: "power2.out" }, 0.85);
+
+      // Scene 3 (1.8–2.6s): one specular sweep across the mark; binary digits flip-decode at the edges.
+      tl.fromTo("#c01-sweep", { x: -260 }, { x: 1180, duration: 0.8, ease: "power2.inOut" }, 1.8);
+      tl.fromTo(left, { rotationX: -90, opacity: 0 }, { rotationX: 0, opacity: 1, duration: 0.28, ease: "power3.out", stagger: { each: 0.008, from: "start" } }, 1.85);
+      tl.fromTo(right, { rotationX: -90, opacity: 0 }, { rotationX: 0, opacity: 1, duration: 0.28, ease: "power3.out", stagger: { each: 0.008, from: "end" } }, 1.85);
+
+      // Scene 4 (2.6–3.5s): "PRESENTS" tracks in beneath, then everything holds still.
+      letters.forEach((s, i) => tl.fromTo(s, { opacity: 0, x: (i - 3.5) * 22, y: 10 }, { opacity: 1, x: 0, y: 0, duration: 0.7, ease: "power3.out" }, 2.6));
+      tl.set({}, {}, 3.5);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["01-creator"] = tl;
+    })();
+  </script>
+</template>

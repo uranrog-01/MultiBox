@@ -1,0 +1,16 @@
+# Regenerable HyperFrames working files
+.hyperframes/artifacts/
+.hyperframes/frame-packets/
+.thumbnails/
+.waveform-cache/
+.media/
+
+# Capture copies — the same files are staged in assets/ (which the composition uses)
+capture/assets/
+
+# Rendered output — the published copy lives in ../../docs/assets/MultiBox-Intro.mp4
+renders/
+
+# MusicGen run log and the pre-stretch original (assets/bgm/track.wav is the one the film uses)
+assets/bgm/*.log
+assets/bgm/track-musicgen-original.wav

@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- Renders the real UI (../../UI/index.html) in the states used by the launch video (Cline demo).
+     capture-video.html?state=idle|one|two|three|save|vault  — see design/screenshots/capture-video.ps1 -->
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 620px; height: 960px; overflow: hidden; background: #07080a; }
+  iframe { border: 0; width: 620px; height: 960px; display: block; }
+</style></head><body>
+<iframe id="ui" src="../../UI/index.html"></iframe>
+<script>
+const state = new URLSearchParams(location.search).get('state') || 'idle';
+const ui = document.getElementById('ui');
+ui.addEventListener('load', () => setTimeout(() => {
+  const w = ui.contentWindow, d = ui.contentDocument;
+  const style = d.createElement('style'); style.textContent = '.settings-modal, .panel-backdrop, .power-label, .power-btn *, dialog, dialog * { transition: none !important; animation-duration: 0s !important; }'; d.head.append(style);
+  if (state === 'idle') return;
+  const check = { status: 'observed', label: 'Profile activity confirmed', detail: '', method: 'Profile environment variables', profilePath: '' };
+  const cline = '%LOCALAPPDATA%\\Cline\\cline-app.exe';
+  const s = (id, inst, name, color, extra) => Object.assign({ id, appName: 'cline-app.exe', appPath: cline, instance: inst, state: 'running', isBusy: false,
+    pid: 4200 + inst, ramMb: 238 + inst * 17, cpuPercent: 1.4 + inst, elapsed: '00:0' + (inst + 1) + ':1' + inst, vaultPath: '%LOCALAPPDATA%\\MultiBox\\Vaults\\c1e0' + inst,
+    hasSnapshot: false, fromSavedProfile: false, error: null, profileCheck: check, savedProfileId: null, profileName: null, displayName: name, color }, extra);
+  const sessions = state === 'one' ? [s('a', 1, 'Cline · Work', 'lime')]
+    : state === 'two' ? [s('a', 1, 'Cline · Work', 'lime'), s('b', 2, 'Cline · Personal', 'blue')]
+    : [s('a', 1, 'Cline · Work', 'lime'), s('b', 2, 'Cline · Personal', 'blue'), s('c', 3, 'Cline · Client', 'violet')];
+  const selected = state === 'one' ? 'a' : state === 'two' ? 'b' : 'c';
+  const sel = sessions.find(x => x.id === selected);
+  w.onSessionsChanged({ revision: 3, selectedId: selected, sessions });
+  w.updateTelemetry({ appName: sel.displayName, elapsed: sel.elapsed, ramMb: sel.ramMb, cpuPercent: sel.cpuPercent, pid: sel.pid, fromSavedProfile: false });
+  const saved = [{ profileId: 'p1', profileName: 'Work', appName: 'cline-app.exe', appPath: cline, savedAt: 'Oct 18, 2026 • 9:12 AM', sizeMb: 0.97 },
+                 { profileId: 'p2', profileName: 'Personal', appName: 'cline-app.exe', appPath: cline, savedAt: 'Oct 18, 2026 • 9:14 AM', sizeMb: 1.2 }];
+  if (state === 'save') setTimeout(() => {
+    [...d.querySelectorAll('button')].find(b => b.textContent.trim() === 'Save' && b.offsetParent)?.click();
+    setTimeout(() => { const input = d.getElementById('profileNameInput'); input.value = 'Work'; input.dispatchEvent(new w.Event('input', { bubbles: true })); input.blur(); }, 100);
+  }, 200);
+  if (state === 'vault') { w.openVaultDrawer(); setTimeout(() => { w.onSaveBoxLoaded(saved); [...d.querySelectorAll('#saveBoxModal button')].find(b => /^\s*Saved/.test(b.textContent))?.click(); }, 300); }
+}, 800));
+</script>
+</body></html>

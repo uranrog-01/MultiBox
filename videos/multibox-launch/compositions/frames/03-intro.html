@@ -1,0 +1,95 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+    #root { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; font-family: "Inter", sans-serif; }
+    .c03-bg { position: absolute; inset: 0; background: #07080a; }
+    .c03-grid { position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(238,245,230,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(238,245,230,0.035) 1px, transparent 1px);
+      background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 40%, #000 25%, transparent 78%); mask-image: radial-gradient(ellipse 60% 60% at 50% 40%, #000 25%, transparent 78%); }
+    .c03-glow { position: absolute; left: 660px; top: 130px; width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,250,70,0.30) 0%, rgba(198,250,70,0.10) 38%, rgba(198,250,70,0) 70%); }
+    .c03-icon { position: absolute; left: 810px; top: 280px; width: 300px; height: 300px; }
+    .c03-icon svg { position: absolute; inset: 0; width: 300px; height: 300px; overflow: visible; }
+    .c03-word { position: absolute; left: 790px; top: 292px; font-weight: 800; font-size: 150px; letter-spacing: -0.045em; color: #eef5e6; line-height: 1; }
+    .c03-tag { position: absolute; left: 796px; top: 482px; width: 860px; font-weight: 400; font-size: 38px; line-height: 1.32; color: #a9b5a2; }
+  </style>
+
+  <div data-hf-id="hf-yx2b" id="root" data-composition-id="03-intro" data-width="1920" data-height="1080" data-duration="3.5">
+    <div data-hf-id="hf-xb14" id="c03-bg-layer" class="c03-bg clip" data-start="0" data-duration="3.5" data-track-index="0"></div>
+    <div data-hf-id="hf-65xz" id="c03-grid-layer" class="c03-grid clip" data-start="0" data-duration="3.5" data-track-index="1"></div>
+    <div data-hf-id="hf-kjey" class="c03-glow" id="c03-glow"></div>
+
+    <div data-hf-id="hf-2bk2" class="c03-icon" id="c03-icon">
+      <!-- Phase A: the two windows as lime outlines (visible on the dark stage before the squircle exists). -->
+      <svg data-hf-id="hf-7ex6" viewBox="0 0 256 256" id="c03-outline">
+        <path data-hf-id="hf-cfpg" id="c03-back-line" d="M82,64 H134 A18,18 0 0 1 152,82 V134 A18,18 0 0 1 134,152 H82 A18,18 0 0 1 64,134 V82 A18,18 0 0 1 82,64 Z"
+          fill="none" stroke="#c6fa46" stroke-width="16" stroke-linecap="round" pathLength="1" stroke-dasharray="1" />
+        <path data-hf-id="hf-do1u" id="c03-front-line" d="M132,112 H180 A20,20 0 0 1 200,132 V180 A20,20 0 0 1 180,200 H132 A20,20 0 0 1 112,180 V132 A20,20 0 0 1 132,112 Z"
+          fill="#07080a" stroke="#c6fa46" stroke-width="16" />
+      </svg>
+      <!-- Phase B: the finished app icon (same geometry as design/icon/multibox-icon.svg). -->
+      <svg data-hf-id="hf-p4r4" viewBox="0 0 256 256" id="c03-final">
+        <defs data-hf-id="hf-mh0t">
+          <linearGradient data-hf-id="hf-fslf" id="c03-lime" gradientUnits="userSpaceOnUse" x1="40" y1="8" x2="216" y2="248">
+            <stop data-hf-id="hf-39az" offset="0" stop-color="#e4ff80" /><stop data-hf-id="hf-ztw7" offset="0.5" stop-color="#c6fa46" /><stop data-hf-id="hf-y6jo" offset="1" stop-color="#93d722" />
+          </linearGradient>
+          <linearGradient data-hf-id="hf-gg65" id="c03-gloss" x1="0" y1="0" x2="0" y2="1">
+            <stop data-hf-id="hf-upwv" offset="0" stop-color="#ffffff" stop-opacity="0.42" /><stop data-hf-id="hf-8pnq" offset="0.45" stop-color="#ffffff" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient data-hf-id="hf-fvrn" id="c03-ink" x1="0" y1="0" x2="0" y2="1">
+            <stop data-hf-id="hf-cyr4" offset="0" stop-color="#22330f" /><stop data-hf-id="hf-tp9a" offset="1" stop-color="#0d1507" />
+          </linearGradient>
+        </defs>
+        <g data-hf-id="hf-48m6" id="c03-squircle" style="transform-origin: 128px 128px;">
+          <rect data-hf-id="hf-w60g" x="8" y="8" width="240" height="240" rx="60" fill="url(#c03-lime)" />
+          <rect data-hf-id="hf-392r" x="8" y="8" width="240" height="240" rx="60" fill="url(#c03-gloss)" />
+        </g>
+        <g data-hf-id="hf-d5wh" id="c03-windows">
+          <rect data-hf-id="hf-10mv" x="56" y="56" width="104" height="104" rx="24" fill="url(#c03-ink)" />
+          <rect data-hf-id="hf-a0ll" x="72" y="72" width="72" height="72" rx="12" fill="url(#c03-lime)" />
+          <rect data-hf-id="hf-309r" x="96" y="96" width="120" height="120" rx="32" fill="url(#c03-lime)" />
+          <rect data-hf-id="hf-dm3b" x="104" y="104" width="104" height="104" rx="26" fill="url(#c03-ink)" />
+        </g>
+        <g data-hf-id="hf-y6a8" id="c03-plus" style="transform-origin: 156px 156px;">
+          <rect data-hf-id="hf-blfy" x="128" y="148" width="56" height="16" rx="8" fill="#c6fa46" />
+          <rect data-hf-id="hf-dezq" x="148" y="128" width="16" height="56" rx="8" fill="#c6fa46" />
+        </g>
+      </svg>
+    </div>
+
+    <div data-hf-id="hf-s0cc" class="c03-word" id="c03-word">MultiBox</div>
+    <div data-hf-id="hf-9i0v" class="c03-tag" id="c03-tag">Run the same Windows app many times — each with its own profile.</div>
+  </div>
+
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      gsap.set(["#c03-squircle", "#c03-windows", "#c03-plus"], { opacity: 0 });
+
+      // Scene 1 (0.0–0.9s): back window self-draws as a lime outline; front window slides in diagonally over it.
+      tl.fromTo("#c03-back-line", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, 0);
+      tl.fromTo("#c03-front-line", { opacity: 0, x: 40, y: 40 }, { opacity: 1, x: 0, y: 0, duration: 0.45, ease: "power3.out" }, 0.45);
+
+      // Scene 2 (0.9–1.4s): lime squircle blooms behind; the outlines become the real dark windows; "+" pops last.
+      tl.fromTo("#c03-glow", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }, 0.9);
+      // fromTo renders its from-state at t=0, so the squircle starts transparent, not as a small visible dot.
+      tl.fromTo("#c03-squircle", { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.25)" }, 0.9);
+      tl.fromTo("#c03-windows", { opacity: 0 }, { opacity: 1, duration: 0.22, ease: "power1.out" }, 1.0);
+      tl.to("#c03-outline", { opacity: 0, duration: 0.22, ease: "power1.out" }, 1.0);
+      tl.fromTo("#c03-plus", { opacity: 1, scale: 0 }, { opacity: 1, scale: 1, duration: 0.36, ease: "back.out(2.2)" }, 1.18);
+
+      // Scene 3 (1.4–2.2s): icon glides left into a rule-of-thirds lockup; the wordmark rises beside it.
+      tl.to(["#c03-icon", "#c03-glow"], { x: -390, duration: 0.7, ease: "power3.inOut" }, 1.4);
+      tl.fromTo("#c03-word", { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 1.58);
+
+      // Scene 4 (2.2–3.0s): tagline fades up under the wordmark; the lockup holds still.
+      tl.fromTo("#c03-tag", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 2.2);
+      tl.set({}, {}, 3.0);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["03-intro"] = tl;
+    })();
+  </script>
+</template>

@@ -1,0 +1,104 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+    #root { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; font-family: "Inter", sans-serif; }
+    .c04-bg { position: absolute; inset: 0; background: #07080a; }
+    .c04-grid { position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(238,245,230,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(238,245,230,0.035) 1px, transparent 1px);
+      background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 75% 70% at 45% 45%, #000 25%, transparent 80%); mask-image: radial-gradient(ellipse 75% 70% at 45% 45%, #000 25%, transparent 80%); }
+    .c04-glow { position: absolute; left: 40px; top: 160px; width: 820px; height: 820px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,250,70,0.16) 0%, rgba(198,250,70,0.05) 40%, rgba(198,250,70,0) 70%); }
+    /* MultiBox window — handoff: left 170, top 110, 555x860 (620x960 UI at 0.8958). */
+    .c04-mb { position: absolute; left: 170px; top: 110px; width: 555px; height: 860px; border-radius: 22px; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(238,245,230,0.06); }
+    .c04-mb img { position: absolute; inset: 0; width: 555px; height: 860px; }
+    .c04-ring { position: absolute; left: 342px; top: 467px; width: 212px; height: 212px; border-radius: 50%;
+      border: 3px solid #c6fa46; box-shadow: 0 0 34px rgba(198,250,70,0.55), inset 0 0 24px rgba(198,250,70,0.25); }
+    .c04-ripple { position: absolute; left: 342px; top: 467px; width: 212px; height: 212px; border-radius: 50%; border: 4px solid #c6fa46; }
+    .c04-tile { position: absolute; left: 0; top: 0; width: 132px; height: 132px; border-radius: 28px; background-color: #fbfbfb;
+      background-image: url("assets/cline-window.png"); background-size: 520px auto; background-position: -259px -61px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.4); }
+    .c04-cursor { position: absolute; left: 0; top: 0; width: 34px; height: 46px; }
+    /* Cline window — handoff: x 860, y 150, width 920 (1271x820 capture → 920x594). */
+    .c04-cline { position: absolute; left: 860px; top: 150px; width: 920px; height: 594px; border-radius: 12px; overflow: hidden;
+      background: #fbfbfb; box-shadow: 0 30px 70px rgba(0,0,0,0.55); }
+    .c04-cline img { display: block; width: 920px; height: 594px; }
+    .c04-border { position: absolute; left: 852px; top: 142px; width: 936px; height: 610px; overflow: visible; }
+    .c04-pill { position: absolute; left: 872px; top: 120px; padding: 8px 18px 8px 14px; border-radius: 100px; background: #0d1507;
+      border: 2px solid #c6fa46; color: #eef5e6; font-weight: 600; font-size: 22px; display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .c04-dot { width: 10px; height: 10px; border-radius: 50%; background: #c6fa46; box-shadow: 0 0 10px #c6fa46; }
+    .c04-super { position: absolute; left: 862px; top: 800px; font-weight: 700; font-size: 54px; letter-spacing: -0.025em; color: #eef5e6; white-space: nowrap; }
+    .c04-super em { font-style: normal; color: #c6fa46; }
+  </style>
+
+  <div data-hf-id="hf-2o8i" id="root" data-composition-id="04-demo-first" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-m1vc" id="c04-bg-layer" class="c04-bg clip" data-start="0" data-duration="5.5" data-track-index="0"></div>
+    <div data-hf-id="hf-n14z" id="c04-grid-layer" class="c04-grid clip" data-start="0" data-duration="5.5" data-track-index="1"></div>
+    <div data-hf-id="hf-tnfy" class="c04-glow" id="c04-glow"></div>
+
+    <div data-hf-id="hf-mqlq" class="c04-mb" id="c04-mb">
+      <img data-hf-id="hf-rjla" id="c04-ui-idle" src="assets/ui-idle.png" alt="MultiBox ready" />
+      <img data-hf-id="hf-qgx4" id="c04-ui-one" src="assets/ui-one.png" alt="MultiBox with one Cline session" />
+    </div>
+    <div data-hf-id="hf-6kaq" class="c04-ring" id="c04-ring"></div>
+    <div data-hf-id="hf-3uma" class="c04-ripple" id="c04-ripple"></div>
+
+    <div data-hf-id="hf-xpsw" class="c04-cline" id="c04-cline"><img data-hf-id="hf-l83u" src="assets/cline-window.png" alt="Cline" /></div>
+    <svg data-hf-id="hf-t7zd" class="c04-border" id="c04-border" viewBox="0 0 936 610">
+      <rect data-hf-id="hf-ysa8" x="2" y="2" width="932" height="606" rx="16" fill="none" stroke="#c6fa46" stroke-width="3.5" pathLength="1" stroke-dasharray="1"
+        style="filter: drop-shadow(0 0 8px rgba(198,250,70,0.7));" id="c04-border-rect" />
+    </svg>
+    <div data-hf-id="hf-gcut" class="c04-pill" id="c04-pill"><span data-hf-id="hf-ylbi" class="c04-dot"></span>Cline · Work</div>
+
+    <div data-hf-id="hf-noqa" class="c04-tile" id="c04-tile"></div>
+    <svg data-hf-id="hf-k7mv" class="c04-cursor" id="c04-cursor" viewBox="0 0 34 46">
+      <path data-hf-id="hf-er3z" d="M3 3 L3 37 L12 29 L18 43 L24 40 L18 27 L30 27 Z" fill="#ffffff" stroke="#0b0d0a" stroke-width="2.5" stroke-linejoin="round" />
+    </svg>
+
+    <div data-hf-id="hf-7j05" class="c04-super" id="c04-super-a">Drop any app in.</div>
+    <div data-hf-id="hf-dljp" class="c04-super" id="c04-super-b">A fresh profile. <em data-hf-id="hf-44rc">Its own login.</em></div>
+  </div>
+
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      // Drop target center ≈ (448, 573). Tile 132px → top-left (382, 507) when centered on it.
+
+      // Scene 1 (0.0–1.0s): MultiBox window rises into place; first super lands.
+      tl.fromTo("#c04-glow", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 0);
+      tl.fromTo("#c04-mb", { opacity: 0, y: 46, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.75, ease: "power3.out" }, 0);
+      tl.fromTo(["#c04-ui-one", "#c04-ripple"], { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+      tl.fromTo("#c04-super-a", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.45);
+
+      // Scene 2 (1.0–2.4s): cursor drags a Cline tile in from the right onto "Drop an app"; target ring brightens.
+      tl.fromTo("#c04-tile", { x: 1990, y: 470, rotation: 8, opacity: 1 }, { x: 382, y: 507, rotation: 0, duration: 1.2, ease: "power3.inOut" }, 1.0);
+      tl.fromTo("#c04-cursor", { x: 2082, y: 556, opacity: 1 }, { x: 474, y: 593, duration: 1.2, ease: "power3.inOut" }, 1.0);
+      tl.fromTo("#c04-ring", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power2.out" }, 1.95);
+
+      // Scene 3 (2.4–3.0s): drop — tile springs into the circle, ripple, the window switches to "Session active".
+      tl.to("#c04-tile", { scale: 0.15, opacity: 0, duration: 0.3, ease: "back.in(1.6)" }, 2.4);
+      tl.to("#c04-cursor", { scale: 0.86, duration: 0.08, ease: "power2.out" }, 2.4);
+      tl.to("#c04-cursor", { scale: 1, duration: 0.25, ease: "back.out(2)" }, 2.48);
+      tl.fromTo("#c04-ripple", { opacity: 0.9, scale: 0.7 }, { opacity: 0, scale: 1.9, duration: 0.6, ease: "power2.out", immediateRender: false }, 2.45);
+      tl.to("#c04-ring", { opacity: 0, duration: 0.3, ease: "power2.out" }, 2.5);
+      tl.to("#c04-ui-one", { opacity: 1, duration: 0.3, ease: "power1.inOut" }, 2.45);
+      tl.to("#c04-cursor", { x: 600, y: 700, opacity: 0, duration: 0.5, ease: "power2.in" }, 2.75);
+
+      // Scene 4 (3.0–4.4s): the real Cline window springs out to the right; lime session border draws; label pops.
+      tl.fromTo("#c04-cline", { opacity: 0, x: -520, y: 160, scale: 0.32 }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }, 3.0);
+      tl.fromTo("#c04-border-rect", { strokeDashoffset: 1, opacity: 1 }, { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, 3.65);
+      tl.fromTo("#c04-pill", { opacity: 0, scale: 0.6, y: 8 }, { opacity: 1, scale: 1, y: 0, duration: 0.42, ease: "back.out(1.8)" }, 4.0);
+
+      // Scene 5 (4.4–5.5s): super swaps; hold the handoff state (reached by 4.6s).
+      tl.to("#c04-super-a", { opacity: 0, y: -16, duration: 0.25, ease: "power2.in" }, 4.4);
+      tl.fromTo("#c04-super-b", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 4.5);
+      tl.set({}, {}, 5.5);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["04-demo-first"] = tl;
+    })();
+  </script>
+</template>

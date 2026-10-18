@@ -1,0 +1,16 @@
+MultiBox — by zer0ne. Free & open source. Windows 10 & 11.
+
+Run the same Windows app many times, each with its own profile.
+Separate logins, cookies and settings for every copy. Save the copies you want to keep, wipe the rest with one click.
+No admin rights, drivers or virtual machine. Portable: one folder, no installer.
+
+How to use:
+1. Drop an app's .exe or shortcut onto MultiBox (or click Browse). It opens in a fresh, empty profile.
+2. Click "Another copy". Each copy is a separate session you can sign in to with a different account.
+3. Name & color each session (e.g. "Cline · Work", "Cline · Personal"). A colored border marks isolated windows.
+4. Click "Save" and give it a name. MultiBox closes the app for a moment, copies its data, then reopens it. Find it in Vault → Saved.
+5. Click "Wipe" to close a session and delete its temporary files. Saved profiles stay.
+
+Works with: Electron · Chromium · Tauri · WebView2 · Node.js · Bun · Firefox · Microsoft Store desktop apps.
+
+Download: github.com/uranrog-01/MultiBox  ·  v1.0.4

@@ -1,0 +1,56 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+    #root { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; font-family: "Inter", sans-serif; }
+    .c02-bg { position: absolute; inset: 0; background:
+      radial-gradient(ellipse 55% 50% at 50% 42%, #12161a 0%, #07080a 70%),
+      #07080a; }
+    .c02-grid { position: absolute; inset: 0; opacity: 0.9;
+      background-image: linear-gradient(rgba(238,245,230,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(238,245,230,0.035) 1px, transparent 1px);
+      background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 42%, #000 30%, transparent 80%); mask-image: radial-gradient(ellipse 70% 65% at 50% 42%, #000 30%, transparent 80%); }
+    .c02-word { position: absolute; left: 0; right: 0; top: 380px; text-align: center; font-weight: 800; font-size: 132px; letter-spacing: -0.035em; color: #eef5e6; line-height: 1; }
+    .c02-line { position: absolute; left: 0; right: 0; top: 392px; display: flex; justify-content: center; align-items: baseline; gap: 40px; font-weight: 800; font-size: 104px; letter-spacing: -0.03em; color: #eef5e6; line-height: 1; }
+    .c02-tok-muted { color: #6f7a6a; font-size: 84px; font-weight: 600; }
+  </style>
+
+  <div data-hf-id="hf-4x0u" id="root" data-composition-id="02-hook" data-width="1920" data-height="1080" data-duration="3.4">
+    <div data-hf-id="hf-ayh7" id="c02-bg-layer" class="c02-bg clip" data-start="0" data-duration="3.4" data-track-index="0"></div>
+    <div data-hf-id="hf-dhh0" id="c02-grid-layer" class="c02-grid clip" data-start="0" data-duration="3.4" data-track-index="1"></div>
+    <div data-hf-id="hf-yda8" class="c02-word" id="c02-app">One app.</div>
+    <div data-hf-id="hf-26kc" class="c02-word" id="c02-login">One login.</div>
+    <div data-hf-id="hf-qhoa" class="c02-line" id="c02-line">
+      <span data-hf-id="hf-0c3q" id="c02-t1">Sign out.</span><span data-hf-id="hf-gsy8" id="c02-t2">Sign in.</span><span data-hf-id="hf-mtx1" id="c02-t3" class="c02-tok-muted">Repeat.</span>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1 (0.0–0.75s): "One app." slams in (scale down onto the beat).
+      tl.fromTo("#c02-app", { opacity: 0, scale: 1.18 }, { opacity: 1, scale: 1, duration: 0.32, ease: "power3.out" }, 0.02);
+
+      // Scene 2 (0.75–1.5s): hard-cut word swap — the swap itself is the beat.
+      tl.set("#c02-app", { opacity: 0 }, 0.75);
+      tl.fromTo("#c02-login", { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1, duration: 0.28, ease: "power3.out" }, 0.75);
+
+      // Scene 3 (1.5–2.5s): hard cut to the three tokens, each landing on its own beat.
+      tl.set("#c02-login", { opacity: 0 }, 1.5);
+      tl.fromTo("#c02-t1", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.26, ease: "power3.out" }, 1.5);
+      tl.fromTo("#c02-t2", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.26, ease: "power3.out" }, 1.83);
+      tl.fromTo("#c02-t3", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.26, ease: "power3.out" }, 2.16);
+
+      // Scene 4 (2.5–3.0s): one deterministic glitch flicker, then hold.
+      tl.to("#c02-line", { x: 9, opacity: 0.55, duration: 0.04, ease: "none" }, 2.5);
+      tl.to("#c02-line", { x: -6, opacity: 1, duration: 0.04, ease: "none" }, 2.54);
+      tl.to("#c02-line", { x: 3, opacity: 0.7, duration: 0.04, ease: "none" }, 2.58);
+      tl.to("#c02-line", { x: 0, opacity: 1, duration: 0.05, ease: "none" }, 2.62);
+      tl.set({}, {}, 3.0);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["02-hook"] = tl;
+    })();
+  </script>
+</template>

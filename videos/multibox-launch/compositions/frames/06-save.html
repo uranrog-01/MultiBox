@@ -1,0 +1,73 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+    #root { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; font-family: "Inter", sans-serif; }
+    .c06-bg { position: absolute; inset: 0; background: #07080a; }
+    .c06-grid { position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(238,245,230,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(238,245,230,0.035) 1px, transparent 1px);
+      background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 70% 70% at 35% 45%, #000 25%, transparent 80%); mask-image: radial-gradient(ellipse 70% 70% at 35% 45%, #000 25%, transparent 80%); }
+    .c06-glow { position: absolute; left: 180px; top: 140px; width: 860px; height: 860px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198,250,70,0.15) 0%, rgba(198,250,70,0.05) 40%, rgba(198,250,70,0) 70%); }
+    .c06-mb { position: absolute; left: 330px; top: 110px; width: 555px; height: 860px; border-radius: 22px; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(238,245,230,0.06); }
+    .c06-strip { position: absolute; left: 0; top: 0; width: 1110px; height: 860px; }
+    .c06-strip img { position: absolute; top: 0; width: 555px; height: 860px; }
+    .c06-row-glow { position: absolute; left: 22px; top: 292px; width: 511px; height: 76px; border-radius: 14px;
+      border: 2px solid #c6fa46; box-shadow: 0 0 26px rgba(198,250,70,0.45), inset 0 0 18px rgba(198,250,70,0.18); }
+    .c06-ripple { position: absolute; left: 0; top: 0; width: 110px; height: 110px; border-radius: 50%; border: 3px solid #c6fa46; }
+    .c06-cursor { position: absolute; left: 0; top: 0; width: 34px; height: 46px; }
+    .c06-l1 { position: absolute; left: 1010px; top: 372px; font-weight: 800; font-size: 82px; letter-spacing: -0.035em; color: #eef5e6; white-space: nowrap; }
+    .c06-l1 em { font-style: normal; color: #c6fa46; }
+    .c06-l2 { position: absolute; left: 1012px; top: 476px; font-weight: 600; font-size: 52px; letter-spacing: -0.025em; color: #eef5e6; white-space: nowrap; }
+  </style>
+
+  <div data-hf-id="hf-v51x" id="root" data-composition-id="06-save" data-width="1920" data-height="1080" data-duration="4.4">
+    <div data-hf-id="hf-q0qh" id="c06-bg-layer" class="c06-bg clip" data-start="0" data-duration="4.5" data-track-index="0"></div>
+    <div data-hf-id="hf-p1py" id="c06-grid-layer" class="c06-grid clip" data-start="0" data-duration="4.5" data-track-index="1"></div>
+    <div data-hf-id="hf-0cz6" class="c06-glow" id="c06-glow"></div>
+    <div data-hf-id="hf-cq1a" class="c06-mb" id="c06-mb">
+      <div data-hf-id="hf-8y6x" class="c06-strip" id="c06-strip" data-layout-allow-overflow>
+        <img data-hf-id="hf-xskm" src="assets/ui-save.png" alt="Save dialog: Give it a name" style="left: 0;" />
+        <img data-hf-id="hf-7fi6" src="assets/ui-vault.png" alt="Vault: saved profiles" style="left: 555px;" />
+      </div>
+      <div data-hf-id="hf-4gig" class="c06-row-glow" id="c06-row"></div>
+    </div>
+    <div data-hf-id="hf-sb5m" class="c06-ripple" id="c06-ripple"></div>
+    <svg data-hf-id="hf-kxkv" class="c06-cursor" id="c06-cursor" viewBox="0 0 34 46">
+      <path data-hf-id="hf-er3z" d="M3 3 L3 37 L12 29 L18 43 L24 40 L18 27 L30 27 Z" fill="#ffffff" stroke="#0b0d0a" stroke-width="2.5" stroke-linejoin="round" />
+    </svg>
+    <div data-hf-id="hf-12d2" class="c06-l1" id="c06-l1"><em data-hf-id="hf-49lu">Save</em> a setup.</div>
+    <div data-hf-id="hf-2oi3" class="c06-l2" id="c06-l2">Reopen it anytime.</div>
+  </div>
+
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      const saveBtn = { x: 330 + 224, y: 110 + 534 };   // "Save & reopen" in the dialog (620x960 UI at 0.8958)
+
+      // Scene 1 (0.0–1.4s): the window holds the save dialog; cursor clicks "Save & reopen"; first line lands.
+      tl.fromTo("#c06-glow", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power2.out" }, 0);
+      tl.fromTo("#c06-mb", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 0);
+      tl.fromTo(["#c06-row", "#c06-ripple"], { opacity: 0 }, { opacity: 0, duration: 0.01 }, 0);
+      tl.fromTo("#c06-cursor", { x: 820, y: 860, opacity: 0 }, { x: saveBtn.x, y: saveBtn.y, opacity: 1, duration: 0.6, ease: "power3.inOut" }, 0.2);
+      tl.to("#c06-cursor", { scale: 0.86, duration: 0.07, ease: "power2.out" }, 0.85);
+      tl.to("#c06-cursor", { scale: 1, duration: 0.25, ease: "back.out(2)" }, 0.92);
+      tl.fromTo("#c06-ripple", { x: saveBtn.x - 55, y: saveBtn.y - 55, opacity: 0.9, scale: 0.3 }, { opacity: 0, scale: 1.4, duration: 0.5, ease: "power2.out", immediateRender: false }, 0.87);
+      tl.fromTo("#c06-l1", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.55);
+      tl.to("#c06-cursor", { x: saveBtn.x + 140, y: saveBtn.y + 260, opacity: 0, duration: 0.45, ease: "power2.in" }, 1.15);
+
+      // Scene 2 (1.4–2.4s): the window's screen slides left to Vault → Saved; the "Work" row glows as it lands.
+      tl.fromTo("#c06-strip", { x: 0 }, { x: -555, duration: 0.6, ease: "power3.inOut" }, 1.4);
+      tl.fromTo("#c06-row", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out", immediateRender: false }, 2.0);
+
+      // Scene 3 (2.4–4.0s): second line joins; hold.
+      tl.fromTo("#c06-l2", { opacity: 0, y: 20, color: "#6f7a6a" }, { opacity: 1, y: 0, color: "#eef5e6", duration: 0.55, ease: "power3.out" }, 2.4);
+      tl.set({}, {}, 4.0);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["06-save"] = tl;
+    })();
+  </script>
+</template>

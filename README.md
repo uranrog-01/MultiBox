@@ -20,6 +20,7 @@ Separate logins, cookies and settings for every copy. Save the copies you want t
 
 ## Contents
 
+- [See it in action](#see-it-in-action)
 - [What it does](#what-it-does)
 - [Quick start](#quick-start)
 - [How to use](#how-to-use)
@@ -30,6 +31,16 @@ Separate logins, cookies and settings for every copy. Save the copies you want t
 - [How it works](#how-it-works)
 - [Contributing & support](#contributing--support)
 - [License](#license)
+
+## See it in action
+
+<div align="center">
+
+[![MultiBox demo: Cline dropped into MultiBox, then opened three times with separate logins](docs/assets/intro-preview.gif)](https://uranrog-01.github.io/MultiBox/#intro)
+
+**[▶ Watch the full 30-second intro with sound](https://uranrog-01.github.io/MultiBox/#intro)** · [Download the MP4](docs/assets/MultiBox-Intro.mp4)
+
+</div>
 
 ## What it does
 

@@ -1,0 +1,48 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+    @font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+    #root { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; font-family: "Inter", sans-serif; }
+    .c07-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 50% 48%, rgba(198,250,70,0.09) 0%, rgba(198,250,70,0) 65%), #07080a; }
+    .c07-grid { position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(238,245,230,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(238,245,230,0.035) 1px, transparent 1px);
+      background-size: 48px 48px; -webkit-mask-image: radial-gradient(ellipse 65% 60% at 50% 48%, #000 25%, transparent 80%); mask-image: radial-gradient(ellipse 65% 60% at 50% 48%, #000 25%, transparent 80%); }
+    .c07-head { position: absolute; left: 0; right: 0; top: 250px; text-align: center; font-weight: 800; font-size: 78px; letter-spacing: -0.035em; color: #eef5e6; }
+    .c07-row { position: absolute; left: 200px; right: 200px; display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
+    .c07-row-a { top: 420px; }
+    .c07-row-b { top: 560px; }
+    .c07-pill { padding: 16px 30px; border-radius: 100px; font-weight: 600; font-size: 34px; white-space: nowrap; }
+    .c07-pill-type { background: rgba(198,250,70,0.04); border: 1.5px solid rgba(198,250,70,0.22); color: #eef5e6; }
+    .c07-pill-plus { background: #c6fa46; border: 1.5px solid #c6fa46; color: #0d1507; box-shadow: 0 10px 30px rgba(198,250,70,0.25); }
+  </style>
+
+  <div data-hf-id="hf-42i8" id="root" data-composition-id="07-breadth" data-width="1920" data-height="1080" data-duration="2.9">
+    <div data-hf-id="hf-x7vt" id="c07-bg-layer" class="c07-bg clip" data-start="0" data-duration="2.9" data-track-index="0"></div>
+    <div data-hf-id="hf-9g5q" id="c07-grid-layer" class="c07-grid clip" data-start="0" data-duration="2.9" data-track-index="1"></div>
+    <div data-hf-id="hf-f2ld" class="c07-head" id="c07-head">Works with the apps you use.</div>
+    <div data-hf-id="hf-bg6y" class="c07-row c07-row-a">
+      <span data-hf-id="hf-mf0u" class="c07-pill c07-pill-type">Electron</span><span data-hf-id="hf-vh3w" class="c07-pill c07-pill-type">Chromium</span><span data-hf-id="hf-427j" class="c07-pill c07-pill-type">Tauri</span>
+      <span data-hf-id="hf-w5sv" class="c07-pill c07-pill-type">WebView2</span><span data-hf-id="hf-vp1h" class="c07-pill c07-pill-type">Node.js</span><span data-hf-id="hf-sdsl" class="c07-pill c07-pill-type">Bun</span>
+      <span data-hf-id="hf-u867" class="c07-pill c07-pill-type">Store apps</span>
+    </div>
+    <div data-hf-id="hf-7i2x" class="c07-row c07-row-b">
+      <span data-hf-id="hf-xvro" class="c07-pill c07-pill-plus">No admin</span><span data-hf-id="hf-2yf8" class="c07-pill c07-pill-plus">No drivers</span><span data-hf-id="hf-m5ov" class="c07-pill c07-pill-plus">Portable</span>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const tl = gsap.timeline({ paused: true });
+      // Scene 1 (0.0–0.5s): headline rises.
+      tl.fromTo("#c07-head", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 0.3);   // after the 0.4s zoom-through in
+      // Scene 2 (0.5–1.6s): seven app-type pills cascade left→right.
+      tl.fromTo(".c07-pill-type", { opacity: 0, y: 26, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out", stagger: 0.1 }, 0.5);
+      // Scene 3 (1.6–2.5s): three lime pills spring in, then the grid holds.
+      tl.fromTo(".c07-pill-plus", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.7)", stagger: 0.12 }, 1.6);
+      tl.set({}, {}, 2.5);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["07-breadth"] = tl;
+    })();
+  </script>
+</template>
