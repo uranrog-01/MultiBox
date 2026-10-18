@@ -1276,6 +1276,7 @@
   <link rel="stylesheet" href="modern.css">
   <link rel="stylesheet" href="panels.css">
   <link rel="stylesheet" href="sessions.css">
+  <link rel="stylesheet" href="components/text-stream.css">
 </head>
 <body id="body" data-state="idle">
   <div class="ambient-background" aria-hidden="true" inert>
@@ -1467,6 +1468,55 @@
         <button class="settings-folder-tile" type="button" onclick="openVaultExplorer()" aria-label="Open Vault folder"><svg class="settings-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg><span>Vault<small>Temporary</small></span><svg class="settings-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></button>
       </div>
 
+      <!-- Modern About Section with Logo & ObsidianUI TextStream -->
+      <section class="settings-section settings-about-card" aria-labelledby="aboutHeading">
+        <div class="about-hero-header">
+          <div class="about-logo-wrapper" title="Z1 zer0ne">
+            <img src="zer0ne-logo.png" alt="zer0ne Logo" class="about-brand-logo" />
+          </div>
+          <div class="about-header-text">
+            <div class="about-app-title">MultiBox <span class="about-version-badge">v1.0.4</span></div>
+            <div class="about-tagline">Zero-Trace Application Sandbox &amp; Isolation</div>
+          </div>
+        </div>
+
+        <div class="about-stream-wrapper">
+          <div id="obsidianTextStreamContainer"></div>
+        </div>
+
+        <div class="about-meta-grid">
+          <div class="about-meta-item">
+            <span class="about-meta-label">CREATOR</span>
+            <span class="about-meta-value"><span class="about-creator-name">zer0ne</span> (Z1)</span>
+          </div>
+          <div class="about-meta-item">
+            <span class="about-meta-label">CONTAINMENT</span>
+            <span class="about-meta-value status-secure"><i class="status-dot"></i>Active &amp; Ephemeral</span>
+          </div>
+          <div class="about-meta-item">
+            <span class="about-meta-label">RUNTIME</span>
+            <span class="about-meta-value">.NET 10 • Native x64</span>
+          </div>
+          <div class="about-meta-item">
+            <span class="about-meta-label">LICENSE</span>
+            <span class="about-meta-value">MIT Open Source</span>
+          </div>
+        </div>
+
+        <div class="about-action-row">
+          <a class="about-btn about-btn-github" href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener noreferrer" title="View Source on GitHub">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span>GitHub Repo</span>
+            <svg class="about-ext-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </a>
+          <a class="about-btn about-btn-creator" href="https://github.com/uranrog-01" target="_blank" rel="noopener noreferrer" title="View zer0ne Profile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>zer0ne Profile</span>
+            <svg class="about-ext-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </a>
+        </div>
+      </section>
+
       <details class="settings-advanced" id="settingsAdvanced">
         <summary><span>More options</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></summary>
         <div class="settings-advanced-body">
@@ -1485,7 +1535,7 @@
         </div>
       </details>
       <button class="action-btn danger settings-delete-all" type="button" onclick="openPurgeConfirmModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>Delete sessions &amp; saved profiles…</button>
-      <footer class="settings-about"><span>MultiBox <span class="settings-version">1.0.3</span></span><a href="https://github.com/uranrog-01" target="_blank" rel="noopener noreferrer">zer0ne ↗</a></footer>
+      <footer class="settings-about"><span>MultiBox <span class="settings-version">1.0.4</span></span><a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener noreferrer">zer0ne (Z1) ↗</a></footer>
     </div>
   </div>
 
@@ -1989,6 +2039,7 @@
     function openSettings() {
       window.MultiBoxPanels?.open('settings');
       window.chrome_backend?.getContextMenuStatus();
+      if (typeof initAboutTextStream === 'function') initAboutTextStream();
     }
 
     function closeSettings() {
@@ -2311,9 +2362,32 @@
       showNotification('success', 'Session ended. Saved snapshots are kept.');
     };
   </script>
+  <script src="components/text-stream.js"></script>
   <script src="panels.js"></script>
   <script src="visuals.js"></script>
   <script src="profiles.js"></script>
   <script src="sessions.js"></script>
+  <script>
+    let textStreamInstance = null;
+    function initAboutTextStream() {
+      if (!textStreamInstance && window.ObsidianTextStream) {
+        textStreamInstance = new window.ObsidianTextStream('obsidianTextStreamContainer', {
+          prefix: 'ARCHITECTURE • SYSTEM STREAM',
+          items: [
+            'MultiBox Sandbox',
+            'zer0ne (Z1)',
+            'Zero-Trace Ephemeral Vaults',
+            'v1.0.4 Production',
+            'Live Profile Snapshot',
+            'github.com/uranrog-01/MultiBox',
+            'Process Containment Engine',
+            'Independent App Sessions'
+          ],
+          speed: -0.65
+        });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', initAboutTextStream);
+  </script>
 </body>
 </html>

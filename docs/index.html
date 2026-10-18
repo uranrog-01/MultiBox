@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MultiBox — Isolated Windows Application Runtime by zer0ne</title>
-<meta name="description" content="Run any Windows desktop application multiple times concurrently with 100% isolation. Ephemeral sandboxes, SaveBox snapshots, and live container telemetry.">
+<title>MultiBox: run Windows apps many times, each with its own profile</title>
+<meta name="description" content="MultiBox opens each copy of a Windows app in its own session, with separate logins, cookies and settings. Save profiles, wipe sessions, no admin rights needed.">
 <meta name="author" content="zer0ne">
 <link rel="icon" type="image/png" href="assets/icon.png">
 
@@ -512,9 +512,49 @@
     .showcase-grid { grid-template-columns: 1fr; }
     .comp-table th, .comp-table td { padding: 12px 14px; font-size: 13px; }
   }
+  /* Readability, navigation and small-screen fixes */
+  :root { --text-secondary: #46371f; --text-muted: #6b5a3f; }
+  a { color: #92400e; }
+  .btn-primary, .btn-primary:hover { color: #fdf5e2; }
+  .btn-ghost { color: #1a140e; }
+  .skip-link { position: absolute; left: -9999px; top: 8px; z-index: 300; background: #1a140e; color: #fdf5e2; padding: 8px 14px; border-radius: 6px; }
+  .skip-link:focus { left: 12px; }
+  .nav-links a { font-size: 14px; letter-spacing: 0.01em; white-space: nowrap; color: #3a2c17; }
+  .nav-links a:focus-visible, .btn:focus-visible, summary:focus-visible, .showcase-item:focus-visible { outline: 3px solid #d97706; outline-offset: 3px; }
+  .section-tag { letter-spacing: 0.16em; }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
+  .showcase-grid { grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); }
+  .showcase-item { font: inherit; text-align: left; padding: 0; color: inherit; width: 100%; }
+  .steps-grid { grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+  .steps-list { list-style: none; }
+  .step-card .note { margin-top: 10px; font-size: 0.85rem; color: var(--text-muted); }
+  .card-features li { font-size: 13px; }
+  .comp-table td { font-size: 0.95rem; color: #2b2112; }
+  .comp-warn { color: #92400e; font-weight: 600; font-size: 0.92rem; }
+  .comparison-table-wrap { overflow-x: auto; }
+  .callout { margin-top: 28px; background: rgba(255, 255, 255, 0.55); border: 1px solid var(--card-border); border-left: 4px solid #d97706; border-radius: 12px; padding: 22px 26px; }
+  .callout h3 { font-size: 1.1rem; margin-bottom: 8px; color: #1a140e; }
+  .callout p, .callout li { font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); }
+  .callout ul { margin: 10px 0 0 20px; }
+  .faq { display: flex; flex-direction: column; gap: 12px; max-width: 860px; }
+  .faq details { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px 22px; backdrop-filter: blur(8px); }
+  .faq summary { cursor: pointer; font-weight: 700; color: #1a140e; font-size: 1rem; }
+  .faq details[open] summary { margin-bottom: 10px; }
+  .faq p { font-size: 0.95rem; line-height: 1.65; color: var(--text-secondary); }
+  .mini-title { font-size: 1.05rem; margin-bottom: 8px; color: #1a140e; }
+  .mini-text { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.55; }
+  code { font-family: var(--font-mono); font-size: 0.88em; background: rgba(36, 27, 16, 0.07); padding: 1px 5px; border-radius: 4px; }
+  /* The lamp switch sat on top of the navbar's Download button. */
+  .lamp-switch-pill { top: auto; bottom: 20px; right: 20px; }
+  @media (max-width: 900px) {
+    .nav-inner { flex-wrap: wrap; }
+    .nav-links { display: flex; order: 3; width: 100%; overflow-x: auto; gap: 18px; padding-top: 10px; scrollbar-width: none; }
+    .navbar { padding: 12px 0; }
+  }
 </style>
 </head>
-<body>
+<body class="lit">
 
 <!-- Fixed Stage: Background & WebGL Edison Canvas Engine -->
 <div id="stage">
@@ -522,436 +562,296 @@
   <!-- Floating Lamp Switch Pill (Always accessible) -->
   <button class="lamp-switch-pill" id="lampToggleBtn" title="Toggle Edison Bulb (or press 'L')">
     <span class="lamp-status-dot"></span>
-    <span id="lampBtnText">Turn Light ON [L]</span>
+    <span id="lampBtnText">Turn Light OFF [L]</span>
   </button>
 
   <!-- Scrollable Site Content Container (Underneath engine canvases) -->
   <div id="tpl">
 
+    <a class="skip-link" href="#how">Skip to the guide</a>
+
     <!-- Top Sticky Navigation -->
-    <nav class="navbar fade-target">
+    <nav class="navbar fade-target" aria-label="Main">
       <div class="container nav-inner">
         <a href="#hero" class="brand-group">
-          <img src="assets/icon.png" width="30" height="30" alt="MultiBox Logo" style="border-radius: 7px; vertical-align: middle;">
-          <span class="brand-logo" data-shadow-text="6">MultiBox</span>
-          <span class="brand-badge">BY ZER0NE</span>
+          <img src="assets/icon.png" width="30" height="30" alt="" style="border-radius: 7px; vertical-align: middle;">
+          <span class="brand-logo" data-shadow-text="3">MultiBox</span>
         </a>
         <ul class="nav-links">
-          <li><a href="#hero">Overview</a></li>
-          <li><a href="#pillars">The 3 Pillars</a></li>
-          <li><a href="#showcase">Video & Showcase</a></li>
-          <li><a href="#comparison">Comparison</a></li>
-          <li><a href="#quickstart">Quick Start</a></li>
-          <li><a href="#architecture">Architecture</a></li>
-          <li><a href="#author">Author</a></li>
+          <li><a href="#how">How to use</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#compatibility">Compatibility</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener">GitHub</a></li>
         </ul>
         <div class="nav-actions">
-          <a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">GitHub ★</a>
-          <a href="https://github.com/uranrog-01/MultiBox/releases/latest" class="btn btn-primary btn-sm">⬇ Download v1.0.3</a>
+          <a href="https://github.com/uranrog-01/MultiBox/releases/latest" class="btn btn-primary btn-sm">Download</a>
         </div>
       </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero -->
     <section class="hero fade-target" id="hero">
       <div class="container">
         <div class="hero-content">
           <div style="margin-bottom: 20px;">
-            <img src="assets/icon.png" width="84" height="84" alt="MultiBox Logo" style="border-radius: 20px; box-shadow: 0 10px 28px rgba(26,20,14,0.18);" data-shadow="14">
+            <img src="assets/icon.png" width="84" height="84" alt="MultiBox logo" style="border-radius: 20px; box-shadow: 0 10px 28px rgba(26,20,14,0.18);" data-shadow="10">
           </div>
-          <div class="eyebrow-pill" data-shadow-text="4">
-            <span>🛡️ WINDOWS CONTAINERIZATION</span>
-            <span>•</span>
-            <span>100% ISOLATED RUNTIME</span>
+          <div class="eyebrow-pill">
+            <span>Windows 10 &amp; 11</span><span>•</span><span>No admin</span><span>•</span><span>No drivers</span>
           </div>
-          <h1 class="hero-title" data-shadow-text="12">
-            Run any Windows app multiple times concurrently.
+          <h1 class="hero-title" data-shadow-text="4">
+            Run the same Windows app many times, each with its own profile.
           </h1>
-          <p class="hero-lede" data-shadow-text="6">
-            Open the same program multiple times simultaneously as if freshly installed on a clean PC. Zero shared logins, zero cookie leakage, and zero cross-talk — powered by native Win32 Job Objects, SQLite WAL recovery, and instant ephemeral sandboxes.
+          <p class="hero-lede">
+            MultiBox opens every copy of an app in its own session folder, so each copy keeps separate logins, cookies and settings. Save the copies you want to keep. Wipe the rest with one click.
           </p>
           <div class="hero-ctas">
-            <a href="https://github.com/uranrog-01/MultiBox/releases/latest" class="btn btn-primary" data-shadow="16">
-              ⬇ Download MultiBox v1.0.3 (Win x64)
-            </a>
-            <a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener" class="btn btn-ghost" data-shadow="10">
-              GitHub Repository ★
-            </a>
-            <a href="https://github.com/uranrog-01/MultiBox/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener" class="btn btn-ghost" data-shadow="10">
-              Read Architecture Guide →
-            </a>
+            <a href="https://github.com/uranrog-01/MultiBox/releases/latest" class="btn btn-primary" data-shadow="12">⬇ Download for Windows (x64)</a>
+            <a href="#how" class="btn btn-ghost" data-shadow="8">How to use</a>
           </div>
           <div class="hero-meta-badges">
-            <span class="meta-badge">💻 Windows 10 & 11 (x64)</span>
-            <span class="meta-badge">⚡ .NET 10.0 Native Single-File</span>
-            <span class="meta-badge">📜 MIT Open Source</span>
-            <span class="meta-badge">🔏 Authenticode Signed: zer0ne</span>
+            <span class="meta-badge">Portable: no installer</span>
+            <span class="meta-badge">Windows 10 &amp; 11, x64</span>
+            <span class="meta-badge">Free &amp; open source (MIT)</span>
           </div>
         </div>
 
-        <!-- Highlights Bar -->
         <div class="highlights-bar">
-          <span class="highlight-pill" data-shadow="8">⚡ Instant Multi-Session</span>
-          <span class="highlight-pill" data-shadow="8">🔒 Zero Cross-Talk Sandbox</span>
-          <span class="highlight-pill" data-shadow="8">💾 SaveBox Live Profiles</span>
-          <span class="highlight-pill" data-shadow="8">🗄️ 1-Click Vault Clean Wipe</span>
-          <span class="highlight-pill" data-shadow="8">🪟 Tray Docking & Slide Motion</span>
+          <span class="highlight-pill" data-shadow="6">Separate logins per copy</span>
+          <span class="highlight-pill" data-shadow="6">Save &amp; reopen profiles</span>
+          <span class="highlight-pill" data-shadow="6">One-click wipe</span>
+          <span class="highlight-pill" data-shadow="6">Electron · Tauri · WebView2 · Node.js · Bun</span>
         </div>
       </div>
     </section>
 
-    <!-- The 3 Core Pillars -->
-    <section class="section fade-target" id="pillars">
+    <!-- How to use -->
+    <section class="section fade-target" id="how">
       <div class="container">
-        <p class="section-tag" data-shadow-text="4">HOW IT WORKS // CORE FUNCTIONALITY</p>
-        <h2 class="section-title" data-shadow-text="8">The 3 Pillars of MultiBox</h2>
-        <p class="section-desc" data-shadow-text="4">
-          MultiBox abstracts filesystem and profile access in user-mode so you can run duplicate accounts of Discord, Telegram, WhatsApp, Chrome, or custom software without any collision.
-        </p>
+        <p class="section-tag">Guide</p>
+        <h2 class="section-title" data-shadow-text="3">How to use MultiBox</h2>
+        <p class="section-desc">Five steps, about two minutes. The button names below match what you see in the app.</p>
+
+        <ol class="steps-grid steps-list">
+          <li class="step-card" data-shadow="8">
+            <span class="step-num">1</span>
+            <h3>Download and start</h3>
+            <p>Download <code>MultiBox-v1.0.3-win-x64.zip</code> from <a href="https://github.com/uranrog-01/MultiBox/releases/latest">Releases</a>, extract it to any folder and run <code>MultiBox.exe</code>. Nothing is installed.</p>
+            <p class="note">Windows may show a SmartScreen warning the first time. Click <b>More info → Run anyway</b>. <a href="#faq-smartscreen">Why?</a></p>
+          </li>
+          <li class="step-card" data-shadow="8">
+            <span class="step-num">2</span>
+            <h3>Add an app</h3>
+            <p>Drag an app's <code>.exe</code> or desktop shortcut onto MultiBox, or click <b>Browse</b>. It opens in a fresh, empty profile, the same as on a brand-new PC.</p>
+            <p class="note">Optional: turn on <b>Settings → Right-click launch</b> to get <b>Run in Isolated Mode (MultiBox)</b> in File Explorer.</p>
+          </li>
+          <li class="step-card" data-shadow="8">
+            <span class="step-num">3</span>
+            <h3>Open more copies</h3>
+            <p>Click <b>Another copy</b>. Each copy is a separate session you can sign in to with a different account. Switch between sessions at the top, and use <b>Name &amp; color</b> to label them (for example <i>Chrome · Work</i>).</p>
+          </li>
+          <li class="step-card" data-shadow="8">
+            <span class="step-num">4</span>
+            <h3>Keep a copy</h3>
+            <p>Click <b>Save</b> and give it a name. MultiBox closes the app for a moment, copies its data safely, then reopens it. Find saved profiles under <b>Vault → Saved</b> and click <b>Open</b> to use one again.</p>
+          </li>
+          <li class="step-card" data-shadow="8">
+            <span class="step-num">5</span>
+            <h3>Clean up</h3>
+            <p>Click <b>Wipe</b> to close a session and delete its temporary files. Saved profiles are kept. Closing MultiBox sends it to the system tray; right-click the tray icon to quit.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section fade-target" id="features">
+      <div class="container">
+        <p class="section-tag">Features</p>
+        <h2 class="section-title" data-shadow-text="3">What MultiBox does</h2>
+        <p class="section-desc">MultiBox runs your apps normally, with no virtual machine. It points each copy at its own data folders and keeps track of every process that copy starts.</p>
 
         <div class="grid-3">
-          <!-- Pillar 1: The Vault -->
-          <div class="card" data-shadow="14">
+          <div class="card" data-shadow="10">
             <span class="card-icon">🗄️</span>
-            <h3>
-              The Vault
-              <span class="card-badge">Ephemeral Sandbox</span>
-            </h3>
-            <p>
-              Every launched instance is placed in a private Vault folder. AppData, caches, cookies, and local databases are completely redirected away from your real Windows profile.
-            </p>
+            <h3>Vault <span class="card-badge">Temporary</span></h3>
+            <p>Every copy gets its own folder for app data, caches, cookies, temp files and local databases, separate from your Windows profile and from other copies.</p>
             <ul class="card-features">
-              <li>100% Instance Separation (Instance #1 cannot see #2)</li>
-              <li>1-Click Clean Wipe permanently erases all temporary files</li>
-              <li>Zero tracking cookies or forensic residue left behind</li>
+              <li>Separate logins and settings per copy</li>
+              <li>Child processes stay in the same session</li>
+              <li><b>Wipe</b> deletes the session's files</li>
             </ul>
           </div>
-
-          <!-- Pillar 2: SaveBox -->
-          <div class="card" data-shadow="14">
+          <div class="card" data-shadow="10">
             <span class="card-icon">💾</span>
-            <h3>
-              SaveBox
-              <span class="card-badge">Permanent Profiles</span>
-            </h3>
-            <p>
-              Need to keep specific accounts permanent? (e.g. Work Discord, Personal Chrome, Client WhatsApp). SaveBox snapshots your running sessions transactional-clean.
-            </p>
+            <h3>SaveBox <span class="card-badge">Permanent</span></h3>
+            <p>Keep a session as a named profile, such as <i>Work Slack</i> or <i>Client A</i>, and open it again later in a fresh session.</p>
             <ul class="card-features">
-              <li>Live hot SQLite WAL database copy without app restarts</li>
-              <li>Save named profiles (e.g. *Client Accounts*, *Crypto*)</li>
-              <li>1-Click restore opens saved profiles as fresh containers</li>
+              <li>Databases copied with SQLite's backup API</li>
+              <li>Caches skipped, so profiles stay small</li>
+              <li>Linked profiles update when the app closes</li>
             </ul>
           </div>
-
-          <!-- Pillar 3: Tasks & Telemetry -->
-          <div class="card" data-shadow="14">
+          <div class="card" data-shadow="10">
             <span class="card-icon">📊</span>
-            <h3>
-              Tasks & HUD
-              <span class="card-badge">Live Telemetry</span>
-            </h3>
-            <p>
-              Full real-time oversight of every process running inside your sandboxes. Inspect memory allocations, CPU utilization, and process trees with precision.
-            </p>
+            <h3>Tasks <span class="card-badge">Live</span></h3>
+            <p>See memory and CPU use for each session. The Tasks list also shows programs already open on your PC.</p>
             <ul class="card-features">
-              <li>1-Click Desktop Capture isolates any running application</li>
-              <li>Dynamic telemetry reactor core and container pulse bars</li>
-              <li>Instant terminate, isolate, or inspect child processes</li>
+              <li><b>Isolate &amp; Run</b> starts a separate copy of a running program</li>
+              <li>Live memory, CPU and run time per session</li>
+              <li>Colored border marks isolated windows</li>
             </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Video Intro & Screenshot Visual Showcase -->
+    <!-- Screenshots & video -->
     <section class="section fade-target" id="showcase">
       <div class="container">
-        <p class="section-tag" data-shadow-text="4">VIDEO INTRO // 10-SECOND MOTION SHOWCASE</p>
-        <h2 class="section-title" data-shadow-text="8">MultiBox in Motion</h2>
-        <p class="section-desc" data-shadow-text="4">
-          Authored with HyperFrames — 10 seconds showcasing zer0ne branding, isolated app sandboxes, 3D icon, and live container telemetry.
-        </p>
+        <p class="section-tag">Screenshots</p>
+        <h2 class="section-title" data-shadow-text="3">See it in action</h2>
+        <p class="section-desc">Click a screenshot to enlarge it.</p>
 
-        <!-- Video Player -->
-        <div class="video-container" data-shadow="18">
+        <div class="showcase-grid">
+          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/dashboard.png', 'Main window and session switcher')">
+            <div class="showcase-img-wrap"><img src="screenshots/dashboard.png" alt="Main window with session switcher" loading="lazy"></div>
+            <div class="showcase-caption"><h4>Main window</h4><p>Open copies of an app and switch between sessions at the top.</p></div>
+          </button>
+          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/vault.png', 'Vault: running sessions')">
+            <div class="showcase-img-wrap"><img src="screenshots/vault.png" alt="Vault panel listing sessions" loading="lazy"></div>
+            <div class="showcase-caption"><h4>Vault</h4><p>Each session's storage, with Save and Wipe actions.</p></div>
+          </button>
+          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/savebox.png', 'Saved profiles')">
+            <div class="showcase-img-wrap"><img src="screenshots/savebox.png" alt="Saved profiles library" loading="lazy"></div>
+            <div class="showcase-caption"><h4>Saved profiles</h4><p>Named profiles you can open again at any time.</p></div>
+          </button>
+          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/tasks.png', 'Tasks')">
+            <div class="showcase-img-wrap"><img src="screenshots/tasks.png" alt="Tasks panel with running programs" loading="lazy"></div>
+            <div class="showcase-caption"><h4>Tasks</h4><p>Running programs, memory use and Isolate &amp; Run.</p></div>
+          </button>
+        </div>
+
+        <div class="video-container" data-shadow="12" style="margin-top: 40px;">
           <div class="video-player-wrap">
-            <video controls poster="assets/intro-preview.gif" preload="metadata">
+            <video controls poster="assets/intro-preview.gif" preload="none">
               <source src="assets/MultiBox-Intro-10s.mp4" type="video/mp4">
               Your browser does not support HTML5 video.
             </video>
           </div>
           <div class="video-caption-bar">
-            <div class="video-caption-text">
-              <h4>MultiBox 10s Teaser Intro (1080p 60fps)</h4>
-              <p>Deterministic GSAP timeline • Custom synthesized cyber audio • Full HD 1920x1080</p>
-            </div>
-            <div class="video-badges">
-              <a href="assets/MultiBox-Intro-10s.mp4" download class="btn btn-ghost btn-sm">⬇ Download MP4</a>
-              <a href="https://github.com/uranrog-01/MultiBox/releases/tag/v1.0.3" target="_blank" rel="noopener" class="btn btn-accent btn-sm">Release v1.0.3 🎬</a>
-            </div>
-          </div>
-        </div>
-
-        <p class="section-tag" data-shadow-text="4" style="margin-top: 60px;">INTERFACE & WALKTHROUGH // VISUAL SHOWCASE</p>
-        <h2 class="section-title" data-shadow-text="8">Engineered for Elegance & Speed</h2>
-        <p class="section-desc" data-shadow-text="4">
-          Click any screenshot below to inspect the interface in full high resolution.
-        </p>
-
-        <div class="showcase-grid">
-          <!-- Item 1: Dashboard -->
-          <div class="showcase-item" data-shadow="14" onclick="openLightbox('screenshots/dashboard.png', '1. Main Dashboard & Capsule Switcher')">
-            <div class="showcase-img-wrap">
-              <img src="screenshots/dashboard.png" alt="Main Dashboard and Capsule Switcher" loading="lazy">
-              <div class="showcase-overlay">
-                <span class="zoom-pill">🔍 Click to Expand</span>
-              </div>
-            </div>
-            <div class="showcase-caption">
-              <h4>1. Main Dashboard & Capsule Switcher</h4>
-              <p>Launch duplicate application copies and switch between them instantly using the top capsule bar.</p>
-            </div>
-          </div>
-
-          <!-- Item 2: Vault -->
-          <div class="showcase-item" data-shadow="14" onclick="openLightbox('screenshots/vault.png', '2. The Vault (Ephemeral Session Sandboxes)')">
-            <div class="showcase-img-wrap">
-              <img src="screenshots/vault.png" alt="The Vault Sandbox Manager" loading="lazy">
-              <div class="showcase-overlay">
-                <span class="zoom-pill">🔍 Click to Expand</span>
-              </div>
-            </div>
-            <div class="showcase-caption">
-              <h4>2. The Vault (Ephemeral Sandboxes)</h4>
-              <p>Inspect active session folders, track storage consumption, and wipe temporary sessions with 1 click.</p>
-            </div>
-          </div>
-
-          <!-- Item 3: SaveBox -->
-          <div class="showcase-item" data-shadow="14" onclick="openLightbox('screenshots/savebox.png', '3. SaveBox Permanent Profile Library')">
-            <div class="showcase-img-wrap">
-              <img src="screenshots/savebox.png" alt="SaveBox Profile Library" loading="lazy">
-              <div class="showcase-overlay">
-                <span class="zoom-pill">🔍 Click to Expand</span>
-              </div>
-            </div>
-            <div class="showcase-caption">
-              <h4>3. SaveBox Profile Library</h4>
-              <p>Snapshot and swap persistent environments (Work, Personal, Clients) with hot transactional recovery.</p>
-            </div>
-          </div>
-
-          <!-- Item 4: Tasks -->
-          <div class="showcase-item" data-shadow="14" onclick="openLightbox('screenshots/tasks.png', '4. Tasks & Container Telemetry Reactor')">
-            <div class="showcase-img-wrap">
-              <img src="screenshots/tasks.png" alt="Tasks & Container Telemetry" loading="lazy">
-              <div class="showcase-overlay">
-                <span class="zoom-pill">🔍 Click to Expand</span>
-              </div>
-            </div>
-            <div class="showcase-caption">
-              <h4>4. Tasks & Live Container Telemetry</h4>
-              <p>Monitor active process trees, inspect memory allocations, and capture desktop windows with 1 click.</p>
-            </div>
+            <div class="video-caption-text"><h4>10-second intro</h4><p>1080p · with sound</p></div>
+            <div class="video-badges"><a href="assets/MultiBox-Intro-10s.mp4" download class="btn btn-ghost btn-sm">Download MP4</a></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Comparison Matrix -->
-    <section class="section fade-target" id="comparison">
+    <!-- Compatibility -->
+    <section class="section fade-target" id="compatibility">
       <div class="container">
-        <p class="section-tag" data-shadow-text="4">WHY MULTIBOX? // SIDE-BY-SIDE MATRIX</p>
-        <h2 class="section-title" data-shadow-text="8">Standard Windows vs. MultiBox</h2>
-        <p class="section-desc" data-shadow-text="4">
-          See why power users, testers, and multi-account operators choose MultiBox over default Windows limits.
-        </p>
+        <p class="section-tag">Compatibility</p>
+        <h2 class="section-title" data-shadow-text="3">Which apps work</h2>
+        <p class="section-desc">Most desktop apps keep their data in the folders MultiBox redirects. Each copy also gets its own Node.js / Bun home and temp folders, and its own background-service ports for apps that need them.</p>
 
-        <div class="comparison-table-wrap" data-shadow="14">
+        <div class="comparison-table-wrap" data-shadow="10">
           <table class="comp-table">
-            <thead>
-              <tr>
-                <th style="width: 32%;">Feature</th>
-                <th style="width: 34%;">Standard Windows</th>
-                <th style="width: 34%;">With MultiBox 🛡️</th>
-              </tr>
-            </thead>
+            <thead><tr><th>App type</th><th>Examples</th><th>Status</th></tr></thead>
             <tbody>
-              <tr>
-                <td class="comp-feat">Multiple App Instances</td>
-                <td class="comp-bad">❌ Blocked or single-window restriction</td>
-                <td class="comp-good">✅ Unlimited parallel copies simultaneously</td>
-              </tr>
-              <tr>
-                <td class="comp-feat">User Profile & Cookies</td>
-                <td class="comp-bad">❌ All windows share one profile and cache</td>
-                <td class="comp-good">✅ Every copy gets a clean, independent profile</td>
-              </tr>
-              <tr>
-                <td class="comp-feat">Multi-Account Switching</td>
-                <td class="comp-bad">❌ Must log out and log back in repeatedly</td>
-                <td class="comp-good">✅ All your accounts run live side-by-side</td>
-              </tr>
-              <tr>
-                <td class="comp-feat">Data Cleanup & Privacy</td>
-                <td class="comp-bad">❌ Sticky cookies, caches, and telemetry linger</td>
-                <td class="comp-good">✅ 1-Click Clean Wipe destroys all temp traces</td>
-              </tr>
-              <tr>
-                <td class="comp-feat">Persistent Profiles</td>
-                <td class="comp-bad">❌ Manual folder copying and profile flags</td>
-                <td class="comp-good">✅ SaveBox live snapshots with hot SQLite backup</td>
-              </tr>
-              <tr>
-                <td class="comp-feat">System Tray Docking</td>
-                <td class="comp-bad">❌ Clutters desktop and taskbar</td>
-                <td class="comp-good">✅ Smooth slide-in motion from system tray clock</td>
-              </tr>
+              <tr><td class="comp-feat">Electron</td><td>Discord, Slack, VS Code, OpenCode</td><td class="comp-good">✅ Own profile per copy</td></tr>
+              <tr><td class="comp-feat">Chromium browsers</td><td>Chrome, Edge, Brave</td><td class="comp-good">✅ Own <code>--user-data-dir</code> per copy</td></tr>
+              <tr><td class="comp-feat">Tauri</td><td>Cline</td><td class="comp-good">✅ Single-instance lock released, so a real second copy opens</td></tr>
+              <tr><td class="comp-feat">WebView2 apps</td><td>Apps that use Edge WebView2</td><td class="comp-good">✅ Own WebView2 data per copy</td></tr>
+              <tr><td class="comp-feat">Node.js &amp; Bun</td><td>Bundled CLIs and background services</td><td class="comp-good">✅ Home, temp and XDG folders per copy; OpenCode and Cline get their own service ports</td></tr>
+              <tr><td class="comp-feat">Firefox &amp; Thunderbird</td><td>Mozilla apps</td><td class="comp-good">✅ Own <code>-profile</code>, <code>-no-remote</code></td></tr>
+              <tr><td class="comp-feat">Classic Win32 apps</td><td>32-bit and 64-bit</td><td class="comp-warn">⚠️ Works if the app stores data in AppData; registry settings are shared</td></tr>
+              <tr><td class="comp-feat">Microsoft Store apps</td><td>MSIX / WindowsApps</td><td class="comp-bad">❌ Not supported: use the app's regular .exe installer</td></tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </section>
 
-    <!-- Tray Docking & Slide Motion -->
-    <section class="section fade-target" id="tray">
-      <div class="container">
-        <div class="grid-2">
-          <div class="card" data-shadow="14">
-            <span class="card-icon">🪟</span>
-            <h3>System Tray Minimization</h3>
-            <p>
-              Click Minimize (<code>_</code>) or Close (<code>X</code>) to glide MultiBox smoothly down into the Windows notification tray. It completely disappears from your taskbar and screen, staying out of your way until you need it.
-            </p>
-            <ul class="card-features">
-              <li>Zero taskbar clutter during focused work</li>
-              <li>Runs quietly in the background without stealing focus</li>
-              <li>Right-click tray menu for 1-click wipe or instant restore</li>
-            </ul>
-          </div>
-          <div class="card" data-shadow="14">
-            <span class="card-icon">🚀</span>
-            <h3>High-FPS Slide-In Motion</h3>
-            <p>
-              Click the tray icon or launch <code>MultiBox.exe</code> again: the window glides smoothly up from the tray corner with a hardware-composited cubic ease-out animation.
-            </p>
-            <ul class="card-features">
-              <li>Natural physics-driven slide-in entrance</li>
-              <li>Hardware-composited via Windows Desktop Window Manager</li>
-              <li>Instant responsiveness with zero stutter</li>
-            </ul>
-          </div>
+        <div class="callout" data-shadow="6">
+          <h3>What MultiBox does not separate</h3>
+          <p>MultiBox separates app <b>profiles</b>. It is <b>not a security sandbox</b>: apps run with your normal permissions and can still read your files. Shared between copies:</p>
+          <ul>
+            <li>The registry (<code>HKEY_CURRENT_USER</code>)</li>
+            <li>Windows Credential Manager. Apps that store sign-in tokens there may share a login.</li>
+            <li><code>AppData\LocalLow</code> and the Windows "Profile" folder (Electron <code>app.getPath('home')</code>, Rust <code>dirs::home_dir</code>)</li>
+            <li>Your network connection and IP address</li>
+          </ul>
         </div>
       </div>
     </section>
 
-    <!-- Quick Start 3 Steps -->
-    <section class="section fade-target" id="quickstart">
+    <!-- FAQ -->
+    <section class="section fade-target" id="faq">
       <div class="container">
-        <p class="section-tag" data-shadow-text="4">GET STARTED IN SECONDS // QUICK START</p>
-        <h2 class="section-title" data-shadow-text="8">Ready in 3 Simple Steps</h2>
-        <p class="section-desc" data-shadow-text="4">
-          No complex installations, no kernel drivers, and no admin privileges required.
-        </p>
-
-        <div class="steps-grid">
-          <div class="step-card" data-shadow="12">
-            <span class="step-num">01</span>
-            <h3>Download Release</h3>
-            <p>Grab the latest pre-compiled standalone binary archive: <code>MultiBox-v1.0.3-win-x64.zip</code> from GitHub Releases.</p>
-          </div>
-          <div class="step-card" data-shadow="12">
-            <span class="step-num">02</span>
-            <h3>Extract & Launch</h3>
-            <p>Extract the zip archive anywhere on your PC and double-click <code>MultiBox.exe</code>. (Optionally click "Trust Publisher" in Settings for 1-click SmartScreen trust).</p>
-          </div>
-          <div class="step-card" data-shadow="12">
-            <span class="step-num">03</span>
-            <h3>Drag & Multitask!</h3>
-            <p>Drag and drop any application shortcut or <code>.exe</code> into MultiBox. Click <b>Another copy</b> to spawn as many isolated instances as you need!</p>
-          </div>
+        <p class="section-tag">Help</p>
+        <h2 class="section-title" data-shadow-text="3">Frequently asked questions</h2>
+        <div class="faq">
+          <details id="faq-smartscreen"><summary>Why does Windows show a SmartScreen warning?</summary>
+            <p>MultiBox is signed with a self-signed certificate (<code>CN=zer0ne</code>). Windows doesn't recognize self-signed publishers, so the first run shows a warning. Click <b>More info → Run anyway</b>. You can review the source code and build MultiBox yourself instead.</p></details>
+          <details><summary>An app opened my existing window instead of a new copy.</summary>
+            <p>Some apps allow only one running copy and pass new launches to the open window. MultiBox handles the common methods: the Electron and Chromium profile lock, and Tauri's single-instance lock. If an app still does this, please <a href="https://github.com/uranrog-01/MultiBox/issues">open an issue</a> with the app's name and version.</p></details>
+          <details><summary>OpenCode says "Managed service port 45278 is already in use".</summary>
+            <p>OpenCode Desktop starts a background service on a fixed port, so a second copy collided with the first. Builds after v1.0.3 give every copy its own service port automatically. Update to the latest release.</p></details>
+          <details><summary>Does Save interrupt my app?</summary>
+            <p>Yes, briefly. To make a consistent copy, Save asks the app to close, copies its data, then reopens it in the same session. If the app has unsaved work or an open dialog, Save waits and nothing is lost.</p></details>
+          <details><summary>Where are my files stored?</summary>
+            <p>Sessions live in <code>%LOCALAPPDATA%\MultiBox\Vaults</code> and saved profiles in <code>%LOCALAPPDATA%\MultiBox\Vaults\SaveBox</code>. The Vault panel has buttons that open both folders.</p></details>
+          <details><summary>Do I need administrator rights?</summary>
+            <p>No. MultiBox runs as your normal user and installs no drivers or services.</p></details>
+          <details><summary>Can I use MultiBox to run untrusted software safely?</summary>
+            <p>No. Use a virtual machine or Windows Sandbox for that. MultiBox keeps app profiles apart; it does not restrict what a program can access.</p></details>
         </div>
       </div>
     </section>
 
-    <!-- Deep Architecture Preview -->
+    <!-- Under the hood -->
     <section class="section fade-target" id="architecture">
       <div class="container">
-        <div class="card" data-shadow="16" style="background: rgba(36, 27, 16, 0.05); border-color: rgba(217, 119, 6, 0.4);">
-          <p class="section-tag" data-shadow-text="4">LOW-LEVEL INTERNALS // SECURITY & CONTAINERIZATION</p>
-          <h2 class="section-title" data-shadow-text="8">Under the Hood: Native Win32 Engineering</h2>
-          <p class="section-desc" data-shadow-text="4" style="max-width: 80ch;">
-            MultiBox achieves rock-solid user-mode isolation without requiring virtualization hypervisors or custom drivers. It harnesses:
-          </p>
-          <div class="grid-3" style="margin-bottom: 30px;">
-            <div>
-              <h4 style="font-size: 1.1rem; margin-bottom: 8px; color: #1a140e;">Win32 Job Objects</h4>
-              <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
-                Limits processes, guarantees entire process tree clean-up on exit, and blocks rogue child process escapes.
-              </p>
-            </div>
-            <div>
-              <h4 style="font-size: 1.1rem; margin-bottom: 8px; color: #1a140e;">SQLite WAL Recovery</h4>
-              <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
-                Hot transactional snapshots bypass held-file lock markers, preserving active database integrity safely.
-              </p>
-            </div>
-            <div>
-              <h4 style="font-size: 1.1rem; margin-bottom: 8px; color: #1a140e;">Environment Virtualization</h4>
-              <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
-                Dynamically redirects USERPROFILE, APPDATA, LOCALAPPDATA, and TEMP into the Vault sandbox boundary.
-              </p>
-            </div>
+        <div class="card" data-shadow="10">
+          <p class="section-tag">For developers</p>
+          <h2 class="section-title" data-shadow-text="3">Under the hood</h2>
+          <div class="grid-3" style="margin: 10px 0 26px;">
+            <div><h4 class="mini-title">Job Objects</h4><p class="mini-text">Each session's app starts suspended inside a Windows Job Object, so every child process belongs to that session and closes with it.</p></div>
+            <div><h4 class="mini-title">Redirected folders</h4><p class="mini-text"><code>USERPROFILE</code>, <code>APPDATA</code>, <code>LOCALAPPDATA</code>, <code>TEMP</code> and the XDG folders point into the session's Vault, plus profile flags for Chromium, Electron and Firefox.</p></div>
+            <div><h4 class="mini-title">Safe snapshots</h4><p class="mini-text">SaveBox copies SQLite databases with the online backup API and skips caches and lock files, which apps rebuild on their own.</p></div>
           </div>
-          <a href="https://github.com/uranrog-01/MultiBox/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener" class="btn btn-primary" data-shadow="12">
-            Read the Full Architecture & Technical Guide (`ARCHITECTURE.md`) →
-          </a>
+          <a href="https://github.com/uranrog-01/MultiBox/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener" class="btn btn-primary">Read the architecture guide →</a>
         </div>
       </div>
     </section>
 
-    <!-- Creator & Author Section -->
+    <!-- Author -->
     <section class="section fade-target" id="author">
       <div class="container">
-        <div class="creator-section" data-shadow="18">
-          <p class="section-tag" data-shadow-text="4">PROJECT CREATOR & LEAD ARCHITECT</p>
-          
+        <div class="creator-section" data-shadow="10">
           <div class="creator-banner-wrap">
-            <a href="https://github.com/uranrog-01" target="_blank" rel="noopener">
-              <img src="assets/zer0ne-banner.png" alt="zer0ne - MultiBox Creator & Lead Architect">
-            </a>
+            <a href="https://github.com/uranrog-01" target="_blank" rel="noopener"><img src="assets/zer0ne-banner.png" alt="zer0ne, creator of MultiBox" loading="lazy"></a>
           </div>
-
           <div class="creator-info">
-            <h3 data-shadow-text="8">zer0ne</h3>
-            <p data-shadow-text="4">
-              MultiBox is conceived, architected, and engineered from the ground up by <b>zer0ne</b>. Specializing in low-level Windows systems architecture, process containment, and high-performance native tooling.
-            </p>
+            <h3>Made by zer0ne</h3>
+            <p>MultiBox is designed and maintained by zer0ne. Bug reports and pull requests are welcome on GitHub.</p>
             <div class="creator-links">
-              <a href="https://github.com/uranrog-01" target="_blank" rel="noopener" class="btn btn-primary" data-shadow="12">
-                GitHub: @uranrog-01
-              </a>
-              <a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener" class="btn btn-ghost" data-shadow="10">
-                MultiBox Repository ★
-              </a>
+              <a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener" class="btn btn-primary">MultiBox on GitHub</a>
+              <a href="https://github.com/uranrog-01/MultiBox/issues" target="_blank" rel="noopener" class="btn btn-ghost">Report an issue</a>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Footer -->
     <footer class="container footer fade-target">
       <div>
-        <p><img src="assets/icon.png" width="20" height="20" alt="MultiBox" style="vertical-align: middle; border-radius: 5px; margin-right: 6px;"><b>MultiBox</b> — Open source software released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">MIT License</a>.</p>
-        <p style="margin-top: 4px; font-size: 11px;">Copyright © 2026 <b>zer0ne</b> (<a href="https://github.com/uranrog-01" target="_blank" rel="noopener" style="color: inherit;">https://github.com/uranrog-01</a>). All rights reserved.</p>
+        <p><img src="assets/icon.png" width="20" height="20" alt="" style="vertical-align: middle; border-radius: 5px; margin-right: 6px;"><b>MultiBox</b>, released under the <a href="https://github.com/uranrog-01/MultiBox/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>.</p>
+        <p style="margin-top: 4px; font-size: 12px;">Copyright © 2026 zer0ne</p>
       </div>
       <ul class="footer-links">
-        <li><a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener">GitHub</a></li>
         <li><a href="https://github.com/uranrog-01/MultiBox/releases" target="_blank" rel="noopener">Releases</a></li>
+        <li><a href="https://github.com/uranrog-01/MultiBox/issues" target="_blank" rel="noopener">Issues</a></li>
         <li><a href="https://github.com/uranrog-01/MultiBox/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture</a></li>
-        <li><a href="https://github.com/uranrog-01/MultiBox/blob/main/LICENSE" target="_blank" rel="noopener">License</a></li>
         <li><a href="#hero">↑ Top</a></li>
       </ul>
     </footer>
@@ -959,15 +859,13 @@
   </div>
 
   <!-- Direct child of #stage so it stays readable while light is OFF -->
-  <div class="lit-hint" data-shadow-text="6">
-    Pull down the chain or click the bulb to illuminate MultiBox
-  </div>
+  <div class="lit-hint">Click the bulb or press L to turn the light back on</div>
 
 </div>
 
 <!-- Lightbox Modal -->
 <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox(event)">
-  <button class="lightbox-close" onclick="closeLightbox(event)">✕</button>
+  <button class="lightbox-close" onclick="closeLightbox(event)" aria-label="Close">✕</button>
   <div class="lightbox-inner" onclick="event.stopPropagation()">
     <img id="lightboxImg" src="" alt="Screenshot Enlarged">
     <div class="lightbox-title" id="lightboxTitle"></div>
@@ -1013,7 +911,7 @@ document.addEventListener('keydown', function(e) {
     var ON_STATE  = { x: 0.88, y: 0.24, size: 0.13, dark: 0.86, reach: 1.8, pool: 1.25, falloff: 1.05 };
 
     var values = Object.assign({}, schema.EDISON_DEFAULTS, OFF_STATE, {
-      on: false,
+      on: true,
       mode: "room",
       level: 1,
       controls: false
@@ -1039,12 +937,12 @@ document.addEventListener('keydown', function(e) {
       }
     });
 
-    var curSize = values.size;
     if (values.on === true) Object.assign(values, ON_STATE);
+    var curSize = values.size;
     var stage = document.getElementById("stage");
     var tpl = document.getElementById("tpl");
     var inst = null;
-    var lastOn = false;
+    var lastOn = true;
     var tweenToken = 0;
     var lampToggleBtn = document.getElementById("lampToggleBtn");
     var lampBtnText = document.getElementById("lampBtnText");

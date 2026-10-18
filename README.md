@@ -1,197 +1,167 @@
 <div align="center">
 
-<a href="https://github.com/uranrog-01">
-  <img src="docs/assets/zer0ne-banner.png" alt="zer0ne - Project Creator & Author" width="850" style="border-radius: 12px; margin-bottom: 24px;" />
-</a>
-
-<p align="center">
-  <a href="https://github.com/uranrog-01/MultiBox">
-    <img src="docs/assets/icon.png" width="96" height="96" alt="MultiBox Logo" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
-  </a>
-</p>
+<img src="docs/assets/icon.png" width="96" height="96" alt="MultiBox logo" />
 
 # MultiBox
 
-### **Run any Windows app multiple times concurrently — 100% isolated.**
+**Run the same Windows app many times, each copy with its own profile.**
 
-*Architected & Created by [**zer0ne**](https://github.com/uranrog-01) — No shared logins. No shared cookies. Brand-new PC environment for every instance.*
+Separate logins, cookies and settings for every copy. Save the copies you want to keep, wipe the rest with one click.
 
----
+[![Download](https://img.shields.io/github/v/release/uranrog-01/MultiBox?label=Download&color=d97706&style=for-the-badge)](https://github.com/uranrog-01/MultiBox/releases/latest)
+[![Website](https://img.shields.io/badge/Website-MultiBox-1a140e?style=for-the-badge)](https://uranrog-01.github.io/MultiBox/)
+[![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078d4?style=for-the-badge)](#requirements)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-[![Website](https://img.shields.io/badge/Website-MultiBox%20Live-orange?style=for-the-badge&logo=googlechrome&logoColor=white)](https://uranrog-01.github.io/MultiBox/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg?style=for-the-badge)](https://microsoft.com/windows)
-[![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg?style=for-the-badge)](https://dotnet.microsoft.com/)
-[![Architecture](https://img.shields.io/badge/Architecture-x64-black.svg?style=for-the-badge)]()
-[![Latest Release](https://img.shields.io/github/v/release/uranrog-01/MultiBox?color=green&style=for-the-badge)](https://github.com/uranrog-01/MultiBox/releases/latest)
-[![Author](https://img.shields.io/badge/Author-zer0ne-ff6b00.svg?style=for-the-badge&logo=github)](https://github.com/uranrog-01)
-
-<br/>
-
-| ⚡ Instant Multi-Session | 🔒 Zero Cross-Talk | 💾 SaveBox Snapshots | 🗄️ 1-Click Vault Wipe | 🪟 Tray Slide Motion |
-|:---:|:---:|:---:|:---:|:---:|
+<img src="docs/assets/intro-preview.gif" width="760" alt="MultiBox in action" />
 
 </div>
 
----
+## Contents
 
-## 💡 Why MultiBox?
+- [What it does](#what-it-does)
+- [Quick start](#quick-start)
+- [How to use](#how-to-use)
+- [Compatibility](#compatibility)
+- [What is not separated](#what-is-not-separated)
+- [FAQ & troubleshooting](#faq--troubleshooting)
+- [Build from source](#build-from-source)
+- [How it works](#how-it-works)
+- [License](#license)
 
-Normally, Windows and desktop apps (like **Discord, Telegram, Slack, Chrome, WhatsApp, Edge, and VS Code**) restrict you to a single instance or force every window to share the exact same user profile, cookies, and login credentials.
+## What it does
 
-**MultiBox breaks this limitation seamlessly.**
+Most desktop apps (Discord, Slack, VS Code, Chrome and many others) keep one profile per Windows user. To use a second account, you sign out and sign back in. MultiBox removes that step: every copy you open runs in its own **session** with its own data folders, so several accounts can run side by side.
 
-It acts as an on-demand application container: every copy you launch is placed in its own private sandbox. You can run **5 Discord accounts**, **3 WhatsApp windows**, or **independent browser testing environments** simultaneously with complete isolation.
+| | Without MultiBox | With MultiBox |
+| :--- | :--- | :--- |
+| Second copy of an app | Often blocked, or opens the existing window | Opens as a separate copy |
+| Logins & cookies | Shared by every window | Separate for every copy |
+| Switching accounts | Sign out, sign in | Keep both open |
+| Leftover data | Stays on disk | **Wipe** deletes the session's files |
+| Keeping a setup | Copy profile folders by hand | **Save** it as a named profile |
 
-### Standard Windows vs. MultiBox
+MultiBox needs no admin rights, drivers or virtual machine. It is portable: one folder, no installer.
 
-| Standard Windows | With MultiBox 🛡️ |
+## Quick start
+
+1. Download **`MultiBox-v1.0.3-win-x64.zip`** from [Releases](https://github.com/uranrog-01/MultiBox/releases/latest).
+2. Extract it anywhere and run **`MultiBox.exe`**.
+3. Drag an app's `.exe` or shortcut onto MultiBox, then click **Another copy** for each extra copy.
+
+> [!NOTE]
+> The first run may show a Windows SmartScreen warning. Click **More info → Run anyway**. [Why?](#faq--troubleshooting)
+
+## How to use
+
+| Step | What to do |
 | :--- | :--- |
-| ❌ Blocks launching a 2nd copy of the app | ✅ **Launch unlimited parallel copies** |
-| ❌ All windows share one login and cache | ✅ **Each instance gets its own brand-new profile** |
-| ❌ Must log out and log in to switch accounts | ✅ **All your accounts run side-by-side** |
-| ❌ Leaves persistent cookies and cache on disk | ✅ **1-Click Wipe removes temporary traces instantly** |
-| ❌ Tedious setup with complex command-line flags | ✅ **Simple drag-and-drop launcher with tray flyout** |
+| **Add an app** | Drag an `.exe` or desktop shortcut onto MultiBox, or click **Browse**. It opens in a fresh, empty profile. |
+| **Open more copies** | Click **Another copy**. Each copy is a separate session you can sign in to with a different account. |
+| **Switch & label** | Pick a session at the top of the window. Use **Name & color** to label it (for example *Chrome · Work*). A colored border marks isolated windows. |
+| **Keep a copy** | Click **Save** and enter a name. MultiBox closes the app briefly, copies its data, then reopens it. |
+| **Reopen a saved profile** | Open **Vault → Saved** and click **Open**. The profile starts in a fresh session and stays up to date when you close the app. |
+| **Clean up** | Click **Wipe** to close a session and delete its temporary files. Saved profiles are kept. |
+| **Launch from Explorer** | Turn on **Settings → Right-click launch**, then right-click any `.exe` or shortcut and choose **Run in Isolated Mode (MultiBox)**. |
+| **Copy a running program** | Open **Tasks** and click **Isolate & Run** on any running program to start a separate copy of it. |
 
----
+Closing or minimizing MultiBox sends it to the system tray. Click the tray icon to bring it back; right-click it to quit.
 
-## 🎬 10-Second Video Intro
+### Screenshots
 
-<div align="center">
+| Main window | Vault |
+| :---: | :---: |
+| <img src="docs/screenshots/dashboard.png" width="380" alt="Main window" /> | <img src="docs/screenshots/vault.png" width="380" alt="Vault panel" /> |
+| **Saved profiles** | **Tasks** |
+| <img src="docs/screenshots/savebox.png" width="380" alt="Saved profiles" /> | <img src="docs/screenshots/tasks.png" width="380" alt="Tasks panel" /> |
 
-<a href="https://github.com/uranrog-01/MultiBox/releases/latest/download/MultiBox-Intro-10s.mp4">
-  <img src="docs/assets/intro-preview.gif" width="760" alt="MultiBox 10-Second Video Intro" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);" />
-</a>
+## Compatibility
 
-<br/><br/>
+| App type | Examples | Status |
+| :--- | :--- | :--- |
+| Electron | Discord, Slack, VS Code, OpenCode | ✅ Own profile per copy |
+| Chromium browsers | Chrome, Edge, Brave | ✅ Own `--user-data-dir` per copy |
+| Tauri | Cline | ✅ Tauri's single-instance lock is released, so a real second copy opens |
+| WebView2 apps | Apps built on Edge WebView2 | ✅ Own WebView2 data per copy |
+| Node.js & Bun | Bundled CLIs and background services | ✅ Own home, temp and XDG folders per copy. OpenCode and Cline get their own service ports. |
+| Firefox & Thunderbird | Mozilla apps | ✅ Own `-profile` with `-no-remote` |
+| Classic Win32 apps | 32-bit and 64-bit | ⚠️ Works when the app stores data in AppData. Registry settings are shared. |
+| Microsoft Store apps | MSIX / `WindowsApps` | ❌ Not supported. Install the app's regular `.exe` version instead. |
 
-[▶️ **Watch Full 1080p Video Intro with Audio (MP4)**](https://github.com/uranrog-01/MultiBox/releases/latest/download/MultiBox-Intro-10s.mp4) &nbsp;|&nbsp; [🌐 **Interactive Website**](https://uranrog-01.github.io/MultiBox/)
+## What is not separated
 
-</div>
+MultiBox separates app **profiles**. It is **not a security sandbox**: apps run with your normal permissions and can read your files. These are shared between copies:
 
----
+- The registry (`HKEY_CURRENT_USER`)
+- Windows Credential Manager. Apps that keep sign-in tokens there may share a login.
+- `AppData\LocalLow` and the Windows *Profile* folder, as returned by Electron's `app.getPath('home')` or Rust's `dirs::home_dir`
+- Your network connection and IP address
 
-## 📸 Visual Showcase
+To run untrusted software, use a virtual machine or Windows Sandbox instead.
 
-<div align="center">
+## FAQ & troubleshooting
 
-| 🖥️ 1. Main Dashboard & Capsule Switcher | 🗄️ 2. The Vault (Isolated Sandboxes) |
-|:---:|:---:|
-| <img src="docs/screenshots/dashboard.png" width="370" alt="Dashboard" style="border-radius: 8px;" /> | <img src="docs/screenshots/vault.png" width="370" alt="Vault" style="border-radius: 8px;" /> |
-| *Launch duplicate instances & switch instantly with capsules* | *Each app runs in its own sandbox with 1-click wipe* |
+<details>
+<summary><b>Why does Windows show a SmartScreen warning?</b></summary>
 
-| 💾 3. SaveBox Profile Library | 📊 4. Tasks & Live Container Telemetry |
-|:---:|:---:|
-| <img src="docs/screenshots/savebox.png" width="370" alt="SaveBox" style="border-radius: 8px;" /> | <img src="docs/screenshots/tasks.png" width="370" alt="Tasks" style="border-radius: 8px;" /> |
-| *Save & swap permanent setups (Work, Personal, Clients)* | *Inspect active processes & isolate running apps* |
+Releases are signed with a self-signed certificate (`CN=zer0ne`), which Windows does not recognize as a known publisher. Click **More info → Run anyway**, or [build MultiBox yourself](#build-from-source).
+</details>
 
-</div>
+<details>
+<summary><b>An app opened my existing window instead of a new copy.</b></summary>
 
----
+Some apps allow only one running copy and send new launches to the open window. MultiBox handles Electron/Chromium profile locks and Tauri's single-instance lock. If an app still does this, [open an issue](https://github.com/uranrog-01/MultiBox/issues) with the app's name and version.
+</details>
 
-## 🎯 How It Works: The 3 Core Pillars
+<details>
+<summary><b>OpenCode shows "Managed service port 45278 is already in use".</b></summary>
 
-### 1. 🗄️ The Vault (Ephemeral Session Sandbox)
-When you launch an application through MultiBox, it creates a private **Vault** folder on your computer.
-- **Complete Redirection**: All user data, settings, login cookies, and local databases are contained inside that specific vault.
-- **Instance Separation**: Instance #1 can never access or read data from Instance #2.
-- **Instant Clean Wipe**: Click **End & wipe** to terminate the session and permanently erase its temporary files. Nothing lingers on your PC.
+OpenCode Desktop runs a background service on a fixed port, so a second copy collided with the first. Builds after v1.0.3 give every copy its own port. Update to the latest release.
+</details>
 
-### 2. 💾 SaveBox (Permanent Profile Manager)
-While temporary sessions are erased when closed, you often want to keep specific accounts permanently.
-- **Save Setups**: In **Vault → Apps**, click **Save** on any running session. Give it a name like *Work Discord* or *Crypto Portfolio*.
-- **Hot SQLite Backups**: SaveBox takes a transactional snapshot of the databases and cookies without requiring you to restart or lose unsaved progress.
-- **1-Click Restore**: Under **Vault → Saved**, click any saved profile to launch it into a fresh, isolated session anytime.
+<details>
+<summary><b>Does Save interrupt my app?</b></summary>
 
-### 3. 📊 Tasks & Real-Time HUD
-- **Process Inspection**: Monitor exact memory, CPU usage, and process trees for every running container.
-- **1-Click Program Capture**: Notice a program already open on your desktop? Click it in the Tasks list to immediately bring it into an isolated MultiBox container.
-- **Telemetry Reactor**: Dynamic particle core and container pulse bars reflect live container activity.
+Briefly. Save asks the app to close, copies its data consistently, then reopens it in the same session. If the app has unsaved work or an open dialog, Save stops and asks you to finish first. Nothing is deleted.
+</details>
 
----
+<details>
+<summary><b>Where are my files?</b></summary>
 
-## 🪟 System Tray Docking & Motion
+Sessions: `%LOCALAPPDATA%\MultiBox\Vaults`. Saved profiles: `%LOCALAPPDATA%\MultiBox\Vaults\SaveBox`. The Vault panel has buttons to open both folders.
+</details>
 
-MultiBox is designed to stay completely out of your way until you need it:
+## Requirements
 
-* **Slide to Minimize**: Clicking **Minimize (`_`)** or **Close (`X`)** glides the window smoothly down into the Windows system tray and hides it from your taskbar.
-* **Fluid Slide-In Motion**: Clicking the tray icon or launching `MultiBox.exe` slides the window smoothly back out from the tray corner with a high-FPS cubic ease-out animation.
-* **Quick Tray Menu**: Right-click the tray icon to quickly reopen, inspect container status, wipe all active sessions, or exit.
+- Windows 10 or 11, 64-bit
+- Nothing else for the release build: the .NET runtime is included. Microsoft Edge WebView2 Runtime is preinstalled on current Windows.
 
----
+## Build from source
 
-## 🚀 Quick Start Guide
-
-### Step 1: Download
-👉 [**Download `MultiBox-v1.0.3-win-x64.zip` (Latest Release)**](https://github.com/uranrog-01/MultiBox/releases/latest)
-
-### Step 2: Extract & Launch
-Extract the `.zip` archive anywhere on your PC and run **`MultiBox.exe`**.
-
-> [!TIP]
-> **Windows SmartScreen Note**:
-> MultiBox is digitally signed with an Authenticode certificate by `zer0ne`. If Windows displays a first-run prompt:
-> 1. Click **"More info" → "Run anyway"**.
-> 2. *(Optional)* Open MultiBox Settings (⚙️) and click **"Trust Publisher on this PC"** for permanent 1-click trust with zero future prompts.
-
-### Step 3: Start Multitasking!
-- **Drag & drop** any executable (`.exe`) or desktop shortcut into MultiBox.
-- Click **Another copy** to open a second isolated copy of that app.
-- Click **Save** in Vault whenever you want to keep an account permanently!
-
----
-
-## 🛠️ Building from Source
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```powershell
-# 1. Clone repository
 git clone https://github.com/uranrog-01/MultiBox.git
 cd MultiBox
-
-# 2. Build Release (.NET 10 SDK required)
 dotnet build -c Release
 
-# 3. Publish standalone single-file binary
+# Single-file, self-contained build
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
 ```
 
-To run the automated native test harness (26 integration checks):
+Run the native integration tests:
+
 ```powershell
 dotnet build tests/SessionFixture -c Release
 dotnet run --project tests/SessionTests -c Release -- tests/SessionFixture/bin/Release/net10.0-windows
 ```
 
----
+## How it works
 
-## 🔬 Deep Technical Architecture
+Each session starts the app suspended inside its own Windows **Job Object**, so every child process belongs to that session. The app's environment points `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `TEMP` and the XDG folders at the session's Vault folder. Chromium, Electron and Firefox also get explicit profile flags. **SaveBox** copies SQLite databases with the online backup API and skips caches and lock files.
 
-MultiBox is powered by low-level **Windows Job Objects**, **SQLite Write-Ahead Logging (WAL) recovery**, dynamic environment block redirection, and Desktop Window Manager (DWM) composition.
+Read the full [architecture guide](ARCHITECTURE.md).
 
-For a comprehensive technical breakdown of the process containment models, security boundaries, and snapshot protocols:
+## License
 
-👉 [**Read the Architecture & Technical Internals Guide (`ARCHITECTURE.md`)**](ARCHITECTURE.md)
-
----
-
-## 👨‍💻 Creator & Author
-
-<div align="center">
-
-**MultiBox** is engineered and maintained by **[zer0ne](https://github.com/uranrog-01)**.
-
-[![GitHub Profile](https://img.shields.io/badge/GitHub-uranrog--01-181717?style=for-the-badge&logo=github)](https://github.com/uranrog-01)
-[![Author](https://img.shields.io/badge/Author-zer0ne-ff6b00?style=for-the-badge&logo=github&logoColor=white)](https://github.com/uranrog-01)
-[![Follow on GitHub](https://img.shields.io/github/followers/uranrog-01?style=for-the-badge&logo=github&label=Follow%20%40uranrog--01)](https://github.com/uranrog-01)
-
-*Specializing in low-level Windows systems architecture, process containment, and high-performance native tooling.*
-
-</div>
-
----
-
-## 📄 License
-
-This project is open-source and released under the **MIT License**.  
-See the [LICENSE](LICENSE) file for complete terms.
-
-Copyright © 2026 **zer0ne** ([https://github.com/uranrog-01](https://github.com/uranrog-01))
+[MIT](LICENSE) © 2026 [zer0ne](https://github.com/uranrog-01)

@@ -166,3 +166,244 @@
 #settingsModal :is(button, select, summary, a):focus-visible { outline: 2px solid #c6fa46; outline-offset: 3px; }
 @media (max-width: 430px) { #settingsModal .settings-section { padding: 14px; } .settings-card-title { font-size: 13px; gap: 8px; } .settings-segment button { padding: 7px 9px; } #settingsModal .indicator-preview-window { width: 180px; } .settings-switch-row { gap: 12px; } .settings-advanced > summary { padding: 14px; } .settings-folder-tile { padding: 15px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .settings-advanced > summary svg, .settings-segment button, .settings-folder-tile { transition: none; } }
+
+/* About MultiBox Modern Card & ObsidianUI Stream */
+.settings-about-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(16, 20, 27, 0.95), rgba(10, 12, 16, 0.98)) !important;
+  border: 1px solid rgba(255, 149, 0, 0.22) !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.settings-about-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff8000, #ffb300, #00f0ff, transparent);
+}
+.about-hero-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.about-logo-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  background: radial-gradient(circle at center, rgba(255, 149, 0, 0.2) 0%, rgba(10, 12, 16, 0.9) 100%);
+  border: 1px solid rgba(255, 149, 0, 0.4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 18px rgba(255, 128, 0, 0.25);
+}
+.about-brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+}
+.about-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.about-app-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.about-version-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 149, 0, 0.15);
+  border: 1px solid rgba(255, 149, 0, 0.45);
+  color: #ff9500;
+  letter-spacing: 0.5px;
+}
+.about-tagline {
+  font-size: 11px;
+  color: #8fa094;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* ObsidianUI TextStream Ribbon */
+.about-stream-wrapper {
+  background: rgba(6, 8, 12, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.obsidian-text-stream {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 0.2rem;
+}
+.obsidian-text-stream__prefix {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ff9500;
+  opacity: 0.85;
+  margin: 0;
+}
+.obsidian-text-stream__viewport {
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+  height: 38px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%, black 75%, transparent 100%);
+  text-align: center;
+  user-select: none;
+}
+.obsidian-text-stream__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.obsidian-text-stream__copy {
+  display: flex;
+  flex-direction: column;
+}
+.obsidian-text-stream__item {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 4px 0;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 10px rgba(255, 149, 0, 0.35);
+}
+
+/* Meta specifications grid */
+.about-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.about-meta-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.about-meta-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #6d7d72;
+  text-transform: uppercase;
+}
+.about-meta-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d1ded5;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.about-creator-name {
+  color: #ff9500;
+  font-weight: 700;
+}
+.status-secure {
+  color: var(--accent-green, #b4f000);
+}
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green, #b4f000);
+  box-shadow: 0 0 8px var(--accent-green, #b4f000);
+  animation: statusBlink 1.8s infinite ease-in-out;
+}
+@keyframes statusBlink {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* Action buttons */
+.about-action-row {
+  display: flex;
+  gap: 8px;
+}
+.about-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.about-btn-github {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+.about-btn-github:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.about-btn-creator {
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  color: #ffaa33;
+}
+.about-btn-creator:hover {
+  background: rgba(255, 149, 0, 0.2);
+  border-color: rgba(255, 149, 0, 0.5);
+  color: #ffbb44;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(255, 149, 0, 0.25);
+}
+.about-ext-arrow {
+  opacity: 0.7;
+  transition: transform 0.2s;
+}
+.about-btn:hover .about-ext-arrow {
+  transform: translate(2px, -2px);
+  opacity: 1;
+}
