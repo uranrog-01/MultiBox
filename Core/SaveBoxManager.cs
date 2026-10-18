@@ -280,6 +280,8 @@ public static class SaveBoxManager
         {
             // Ownership is local to a live vault and must never enter a saved profile.
             if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile) continue;
+            // Never copy stale OS shared memory lock files
+            if (file.Name.EndsWith("-shm", StringComparison.OrdinalIgnoreCase)) continue;
             if ((file.Attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("Profiles with linked files cannot be copied.");
             using var input = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var output = new FileStream(Path.Combine(destination, file.Name), FileMode.Create, FileAccess.Write, FileShare.Read);
@@ -346,6 +348,8 @@ public static class SaveBoxManager
         {
             if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile) continue;
             if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+            // Never copy stale OS shared memory lock files
+            if (file.Name.EndsWith("-shm", StringComparison.OrdinalIgnoreCase)) continue;
             string targetPath = Path.Combine(destination, file.Name);
             try
             {
@@ -354,15 +358,46 @@ public static class SaveBoxManager
                     using var input = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
                     using var output = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read);
                     input.CopyTo(output);
+                    output.Flush();
                 }
+                File.SetLastWriteTimeUtc(targetPath, file.LastWriteTimeUtc);
             }
             catch { }
         }
+
+        // Prune files that were removed from the live vault
+        try
+        {
+            foreach (var destFile in new DirectoryInfo(destination).GetFiles())
+            {
+                if (destFile.Name is "manifest.json" or VaultRecovery.OwnerFile or VaultRecovery.LeaseFile) continue;
+                string srcFile = Path.Combine(source, destFile.Name);
+                if (!File.Exists(srcFile))
+                {
+                    try { destFile.Delete(); } catch { }
+                }
+            }
+        }
+        catch { }
 
         foreach (var child in dir.GetDirectories())
         {
             if (ExcludeGeneratedFolder(Path.GetRelativePath(sourceRoot, child.FullName))) continue;
             SyncDirectories(child.FullName, Path.Combine(destination, child.Name), sourceRoot);
         }
+
+        // Prune directories that were removed from the live vault
+        try
+        {
+            foreach (var destSubDir in new DirectoryInfo(destination).GetDirectories())
+            {
+                string srcSubDir = Path.Combine(source, destSubDir.Name);
+                if (!Directory.Exists(srcSubDir))
+                {
+                    try { EphemeralVault.DeleteTree(destSubDir.FullName); } catch { }
+                }
+            }
+        }
+        catch { }
     }
 }

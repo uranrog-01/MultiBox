@@ -214,6 +214,11 @@ namespace MultiBox.Core
                                 var savedProf = SaveBoxManager.GetProfile(profIdToMigrate);
                                 if (savedProf != null)
                                 {
+                                    string profileDataDir = Path.Combine(savedProf.FolderPath, "Data");
+                                    if (Directory.Exists(profileDataDir))
+                                    {
+                                        PathMigrationHelper.MigrateVaultPaths(_vault.RootPath, profileDataDir, _vault.RootPath);
+                                    }
                                     if (!string.IsNullOrWhiteSpace(savedProf.OriginalVaultPath))
                                     {
                                         PathMigrationHelper.MigrateVaultPaths(_vault.RootPath, savedProf.OriginalVaultPath, _vault.RootPath);

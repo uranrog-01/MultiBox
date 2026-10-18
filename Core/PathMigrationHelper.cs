@@ -133,7 +133,29 @@ namespace MultiBox.Core
                     if (file.Length > 20 * 1024 * 1024) continue;
 
                     string ext = file.Extension;
-                    if (TextExtensions.Contains(ext) || file.Length < 512 * 1024)
+                    if (DatabaseExtensions.Contains(ext))
+                    {
+                        try
+                        {
+                            byte[] fileBytes = File.ReadAllBytes(file.FullName);
+                            string asAscii = Encoding.ASCII.GetString(fileBytes);
+                            var dbMatches = regex.Matches(asAscii);
+                            if (dbMatches.Count > 0)
+                            {
+                                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                                foreach (Match m in dbMatches)
+                                {
+                                    string matchedOld = m.Value.TrimEnd('\\', '/');
+                                    if (string.Equals(matchedOld, newWin, StringComparison.OrdinalIgnoreCase) || !seen.Add(matchedOld)) continue;
+                                    string mWin = matchedOld.Replace('/', '\\');
+                                    string mUnix = matchedOld.Replace('\\', '/');
+                                    MigrateSqliteDatabase(file.FullName, mWin, newWin, mUnix, newUnix);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                    else if (TextExtensions.Contains(ext) || file.Length < 512 * 1024)
                     {
                         try
                         {
@@ -302,6 +324,12 @@ namespace MultiBox.Core
                 catch { }
 
                 conn.Close();
+                try
+                {
+                    string shm = dbPath + "-shm";
+                    if (File.Exists(shm)) File.Delete(shm);
+                }
+                catch { }
             }
             catch { }
         }

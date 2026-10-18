@@ -240,6 +240,16 @@ internal static class LiveProfileSnapshot
             }.ToString());
             input.Open();
         }
+        if (readWrite)
+        {
+            try
+            {
+                using var chk = input.CreateCommand();
+                chk.CommandText = "PRAGMA wal_checkpoint(PASSIVE);";
+                chk.ExecuteNonQuery();
+            }
+            catch { }
+        }
         using (input)
         using (var output = new SqliteConnection(new SqliteConnectionStringBuilder {
             DataSource = destination, Mode = SqliteOpenMode.ReadWriteCreate, Pooling = false, DefaultTimeout = 3
