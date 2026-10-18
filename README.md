@@ -4,121 +4,146 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg)](https://microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-x64-lightgrey.svg)]()
+[![Latest Release](https://img.shields.io/github/v/release/uranrog-01/MultiBox?color=green)](https://github.com/uranrog-01/MultiBox/releases/latest)
 [![Author](https://img.shields.io/badge/Author-zer0ne-success.svg)](https://github.com/uranrog-01)
 
-> **Lightweight Windows launcher for running multiple independent app sessions concurrently. One unified dashboard switches between active sessions without restarting them.**
+> **Run the same Windows app multiple times concurrently — completely isolated, with zero shared logins, cookies, or data, as if freshly installed on a brand-new PC.**
 
 ---
 
-## ✨ Features
+## 💡 What is MultiBox?
 
-- **🔄 Isolated Concurrent Sessions**: Launch multiple independent copies of Chromium/Electron apps (Slack, Discord, VS Code, OpenAI Codex, Chrome, Edge) with separate profile directories, cache vaults, and environment variables.
-- **⚡ System Tray Flyout & Motion**: MultiBox docks neatly into the system tray. Minimizing slides the window gracefully into the notification area, while launching or restoring slides the window smoothly into view from the system tray.
-- **💾 SaveBox Profile Snapshots**: Save, name, and swap profiles (e.g., *Work* vs. *Personal*) for any running app. Uses online SQLite WAL database backups, transactional consistency, and excludes locked temp files.
-- **🛡️ Process Tree Tracking**: Uses native Windows Job Objects to manage child processes and window focus without requiring kernel drivers or administrator rights.
-- **🔕 Non-Intrusive App Pill**: A sleek 208×26px auto-hiding indicator pill shows which session you are currently operating without drawing borders or capturing clicks.
-- **🔒 Authenticode Signed & SmartScreen Friendly**: Ships with automated Mark-of-the-Web unblocking and a built-in 1-click publisher trust action right inside the app settings.
+Most modern desktop apps — including **Discord, Telegram, Slack, Chrome, WhatsApp, Edge, and VS Code** — prevent you from opening multiple copies at once, or force all open windows to share the exact same user account, cookies, and cache.
 
----
+**MultiBox solves this effortlessly.**
 
-## 🚀 Quick Start
-
-### 1. Download
-Download the latest pre-built package `MultiBox-v1.0.3-win-x64.zip` from [**GitHub Releases**](https://github.com/uranrog-01/MultiBox/releases).
-
-### 2. Run
-Extract the archive and double-click `MultiBox.exe`.
-
-> **Note on Windows SmartScreen**:
-> MultiBox is signed with an Authenticode certificate issued by `zer0ne`. If Windows displays an "Unknown Publisher" warning on initial download:
-> - Click **"More info" → "Run anyway"**
-> - Or open MultiBox Settings (⚙️) and click **"Trust Publisher on this PC"** for permanent 1-click trust with zero future prompts.
+With MultiBox, you can open as many copies of the same program as you need. Every single copy runs inside its own **independent sandbox**:
+- ❌ **No shared accounts**: Log into 5 different Discord, Telegram, or Google accounts at the same time.
+- ❌ **No shared cookies or storage**: Each copy behaves as if it was just downloaded and freshly installed on a clean computer.
+- ❌ **Zero traces left behind**: When you close and wipe a session, all temporary data and caches vanish completely.
+- ⚡ **Zero app restarts**: Switch between your active sessions smoothly from a single, modern flyout dashboard.
 
 ---
 
-## 📖 How to Use
+## 📸 Visual Tour & How It Works
 
-- **New Session**: Drag and drop any `.exe` or application shortcut directly onto the MultiBox dashboard, or select one from the running process list.
-- **Multiple Copies**: Click **Another copy** to spawn a fresh, parallel instance of the currently selected app with an independent vault.
-- **Session Capsules**: Click capsules (e.g., *Discord #1*, *Discord #2*) to switch telemetry, inspect health, or focus windows.
-- **Names & Colors**: In **Vault → Apps**, customize your session label (e.g. *Client A*, *Personal*) and assign one of 6 accent colors.
-- **Save Profiles**: Go to **Vault → Apps** and click **Save**. Enter a profile name and choose **Save & reopen** to preserve your setup in SaveBox.
-- **Restore Profiles**: In **Vault → Saved**, launch any saved profile as a new, independent session.
-- **End & Wipe**: Close a session and immediately purge its ephemeral cache and temporary files by clicking **End & wipe**.
-- **Minimize to Tray**: Click the minimize (`_`) or close (`X`) button in the titlebar. MultiBox slides down into the system tray. Click the tray icon to slide it back out.
+### 1. The Dashboard & Session Capsules
+*Launch duplicate copies in seconds and switch between them seamlessly.*
+
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="MultiBox Dashboard" width="700" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+</p>
+
+- **Drag & Drop**: Simply drop any application executable (`.exe`) or desktop shortcut onto MultiBox to launch your first isolated copy.
+- **Another Copy**: Click **Another copy** to immediately spawn a duplicate, freshly-isolated instance of that app.
+- **Session Capsules**: Click capsules (*Chrome #1*, *Chrome #2*, *Discord #1*, etc.) to switch telemetry, view session health, or bring that specific app window to the front.
+- **Custom Labels & Colors**: Double-click any capsule to give it a custom name (e.g. *Work*, *Personal*, *Client A*) and pick from 6 accent colors.
 
 ---
 
-## 🏗️ Architecture & Isolation Model
+### 2. The Vault
+*Your private, isolated session sandbox.*
 
-```mermaid
-flowchart TD
-    User([User App Launch]) --> MB[MultiBox Engine]
-    MB --> Job[Windows Job Object]
-    MB --> Redir[Environment & Argument Redirection]
-    
-    subgraph Vaults["Ephemeral Isolation Vaults (%LOCALAPPDATA%/MultiBox/Vaults)"]
-        V1["Vault Session #1\n(User/AppData, User/.codex)"]
-        V2["Vault Session #2\n(User/AppData, User/.codex)"]
-    end
-    
-    Job --> Proc1["App Instance #1"]
-    Job --> Proc2["App Instance #2"]
-    
-    Proc1 --> V1
-    Proc2 --> V2
-    
-    subgraph SaveBoxRoot["SaveBox Profile Snapshots"]
-        SB["Committed SQLite DBs\nPreferences & Storage\n(Excluding .lock / cache)"]
-    end
-    
-    V1 -.->|Safe Snapshot / WAL Backup| SB
-```
+<p align="center">
+  <img src="docs/screenshots/vault.png" alt="MultiBox Vault" width="700" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+</p>
 
-### What Separation Means
-MultiBox redirects user-mode profile paths (`APPDATA`, `LOCALAPPDATA`, `USERPROFILE`) and supplies command-line profile arguments for Chromium, Electron, and Gecko applications. 
-- Windows Job Objects govern process trees, tracking all child processes cleanly for window activation and atomic cleanup.
-- This provides **profile and credential separation** for multitasking and privacy; it is not a virtualization boundary or kernel air-gap against malicious software.
-- Cleanup purges only the target session folder without traversing directory junctions into host system files.
+- **How the Vault Works**: When an app opens through MultiBox, all of its settings, login tokens, downloaded files, and local databases are redirected into a private, temporary folder (its **Vault**).
+- **Total Isolation**: App Instance #1 can never see, modify, or read data from App Instance #2.
+- **1-Click Wipe**: Done with a temporary session? Click **End & wipe** to close that app and immediately erase its temporary vault files. Your main PC stays 100% clean.
+
+---
+
+### 3. SaveBox Profile Library
+*Save your favorite setups and restore them anytime.*
+
+<p align="center">
+  <img src="docs/screenshots/savebox.png" alt="SaveBox Profile Library" width="700" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+</p>
+
+- **How SaveBox Works**: While temporary sessions wipe when closed, you often want to keep specific accounts permanent — such as a permanent *Work Discord* or *Trading Browser Profile*.
+- **Save Profiles**: In **Vault → Apps**, click **Save** on any running session. Give it a name (e.g., *Client Work*, *Crypto Portfolio*), and SaveBox securely snapshots its databases and settings.
+- **1-Click Restore**: Go to **Vault → Saved** and click any saved profile. MultiBox launches it as a brand-new independent instance instantly!
+
+---
+
+### 4. Tasks & Live Container Telemetry
+*Monitor running processes and isolate active programs.*
+
+<p align="center">
+  <img src="docs/screenshots/tasks.png" alt="MultiBox Tasks Panel" width="700" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5);" />
+</p>
+
+- **Running Process Monitor**: Inspect memory, CPU usage, and process status for all isolated instances.
+- **Isolate Running Apps**: See an app already running on your PC? Click it in Tasks to capture and isolate it immediately.
+- **Telemetry Reactor HUD**: Dynamic animated particle reactor and activity frequency bars reflect your active container's live telemetry.
+
+---
+
+### 5. System Tray Flyout & Smooth Motion
+*Docks neatly next to your clock — out of the way until you need it.*
+
+- **Minimize to Tray**: Click the minimize (`_`) or close (`X`) button in the titlebar. MultiBox slides smoothly down into the Windows notification tray, freeing your screen and taskbar.
+- **Fluid Slide-In Motion**: Click the MultiBox icon in the system tray or launch `MultiBox.exe` again: the window glides smoothly up from the tray with a hardware-composited cubic ease-out motion effect.
+- **Quick Tray Menu**: Right-click the tray icon for quick actions: reopen, view status, wipe sessions, or exit.
+
+---
+
+## 🚀 Quick Start Guide
+
+### Step 1: Download
+Download the latest pre-packaged release:
+👉 [**Download `MultiBox-v1.0.3-win-x64.zip`**](https://github.com/uranrog-01/MultiBox/releases/latest)
+
+### Step 2: Extract & Run
+Extract the `.zip` archive to any folder on your PC and double-click **`MultiBox.exe`**.
+
+### Step 3: Start Multitasking!
+Drag and drop any application shortcut or `.exe` onto MultiBox and enjoy complete multi-instance freedom.
+
+---
+
+## 🔒 SmartScreen & Publisher Trust
+
+MultiBox is digitally signed with an Authenticode certificate issued to **`zer0ne`**.
+
+When downloading executables from GitHub, Windows SmartScreen may show an *"Unknown Publisher"* prompt on the very first run:
+1. Click **"More info" → "Run anyway"**.
+2. *Optional (Permanent 1-Click Trust)*: Open MultiBox Settings (⚙️) and click **"Trust Publisher on this PC"** — this permanently configures Windows to trust MultiBox with zero future prompts.
 
 ---
 
 ## 🛠️ Building from Source
 
-### Prerequisites
-- Windows 10 (1809+) or Windows 11 (x64)
-- [.NET 10 SDK](https://dotnet.microsoft.com/)
-- [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (pre-installed on Windows 10/11)
-
-### Build Commands
+If you prefer building MultiBox yourself:
 
 ```powershell
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/uranrog-01/MultiBox.git
 cd MultiBox
 
-# Build Debug / Development
+# 2. Build the solution (.NET 10 SDK required)
 dotnet build -c Release
 
-# Publish Single-File Self-Contained Binary
+# 3. Publish single-file standalone executable
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
+```
+
+To run the native automated integration test suite (26 checks):
+```powershell
+dotnet build tests/SessionFixture -c Release
+dotnet run --project tests/SessionTests -c Release -- tests/SessionFixture/bin/Release/net10.0-windows
 ```
 
 ---
 
-## 🧪 Verification & Automated Testing
+## 🔬 Deep Technical Architecture
 
-MultiBox includes a comprehensive native test harness with 26 integration checks covering atomic Job Objects, multi-process handoff, SQLite WAL recovery, junction traversal safety, concurrent instances, and crash recovery.
+MultiBox achieves user-mode isolation using low-level **Windows Job Objects**, **SQLite Write-Ahead Logging (WAL) recovery**, dynamic environment redirection, and Desktop Window Manager (DWM) composition.
 
-```powershell
-# Build test fixture
-dotnet build tests/SessionFixture -c Release
+For a full breakdown of the internals, process containment models, and database snapshot protocols, read our dedicated technical guide:
 
-# Run automated integration test suite
-dotnet run --project tests/SessionTests -c Release -- tests/SessionFixture/bin/Release/net10.0-windows
-```
-
-In addition, browser UI tests in `design/verify-*.cjs` validate sliding panels, session identity, telemetry graphs, and compact layout responsiveness.
+👉 [**Read the Architecture & Technical Internals Guide (`ARCHITECTURE.md`)**](ARCHITECTURE.md)
 
 ---
 
