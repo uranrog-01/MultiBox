@@ -142,7 +142,9 @@ internal static class LiveProfileSnapshot
         string name = file.Name.ToLowerInvariant();
         return (levelDb && name is "lock" or "log" or "log.old") || 
             name is "singletonlock" or "singletoncookie" or "singletonsocket" or
-            "devtoolsactiveport" or "parent.lock" or ".parentlock" or "lockfile" ||
+            "devtoolsactiveport" or "parent.lock" or ".parentlock" or "lockfile" or
+            "secure preferences" or "web data" or "web data-journal" or "web data-wal" or "web data-shm" or
+            "account web data" or "account web data-journal" or "account web data-wal" or "account web data-shm" ||
             // Chromium's diagnostic logs are not profile state.
             name is "chrome_debug.log" or "debug.log";
     }

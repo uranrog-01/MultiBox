@@ -21,6 +21,51 @@ namespace MultiBox.Core
             ".sqlite", ".db", ".sqlite3"
         };
 
+        private static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".ldb", ".sst", ".dll", ".exe", ".bin", ".dat", ".pak", ".node", ".pyd",
+            ".png", ".jpg", ".jpeg", ".ico", ".webp", ".zip", ".tar", ".gz", ".7z",
+            ".so", ".dylib", ".pdb", ".cur", ".ttf", ".woff", ".woff2"
+        };
+
+        public static bool IsSqliteDatabase(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath)) return false;
+                var info = new FileInfo(filePath);
+                if (info.Length < 16) return false;
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                Span<byte> header = stackalloc byte[16];
+                int read = stream.Read(header);
+                return read == 16 && header.SequenceEqual("SQLite format 3\0"u8);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool IsBinaryFile(string filePath)
+        {
+            try
+            {
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                Span<byte> buffer = stackalloc byte[1024];
+                int read = stream.Read(buffer);
+                if (read <= 0) return false;
+                for (int i = 0; i < read; i++)
+                {
+                    if (buffer[i] == 0) return true;
+                }
+                return false;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         public static void EnsureDirectoryJunction(string junctionPath, string targetPath)
         {
             try
@@ -95,13 +140,17 @@ namespace MultiBox.Core
                 {
                     if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
                     if (file.Length > 20 * 1024 * 1024) continue; // Skip huge binaries
+                    if (string.Equals(file.Name, "Secure Preferences", StringComparison.OrdinalIgnoreCase)) continue;
 
                     string ext = file.Extension;
-                    if (DatabaseExtensions.Contains(ext))
+                    if (BinaryExtensions.Contains(ext)) continue;
+
+                    bool isSqlite = DatabaseExtensions.Contains(ext) || IsSqliteDatabase(file.FullName);
+                    if (isSqlite)
                     {
                         MigrateSqliteDatabase(file.FullName, oldWin, newWin, oldUnix, newUnix);
                     }
-                    else if (TextExtensions.Contains(ext) || file.Length < 1024 * 1024)
+                    else if (TextExtensions.Contains(ext) || (!IsBinaryFile(file.FullName) && file.Length < 1024 * 1024))
                     {
                         MigrateTextFile(file.FullName, oldWin, newWin, oldUnix, newUnix, oldEscaped, newEscaped);
                     }
@@ -131,9 +180,13 @@ namespace MultiBox.Core
                 {
                     if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
                     if (file.Length > 20 * 1024 * 1024) continue;
+                    if (string.Equals(file.Name, "Secure Preferences", StringComparison.OrdinalIgnoreCase)) continue;
 
                     string ext = file.Extension;
-                    if (DatabaseExtensions.Contains(ext))
+                    if (BinaryExtensions.Contains(ext)) continue;
+
+                    bool isSqlite = DatabaseExtensions.Contains(ext) || IsSqliteDatabase(file.FullName);
+                    if (isSqlite)
                     {
                         try
                         {
@@ -155,7 +208,7 @@ namespace MultiBox.Core
                         }
                         catch { }
                     }
-                    else if (TextExtensions.Contains(ext) || file.Length < 512 * 1024)
+                    else if (TextExtensions.Contains(ext) || (!IsBinaryFile(file.FullName) && file.Length < 512 * 1024))
                     {
                         try
                         {

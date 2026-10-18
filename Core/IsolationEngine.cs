@@ -226,6 +226,7 @@ namespace MultiBox.Core
                                     PathMigrationHelper.MigrateAnyOldVaultPaths(_vault.RootPath, _vault.RootPath);
                                 }
                             }
+                            SaveBoxManager.SanitizeRestoredProfile(_vault.RootPath);
                         }
                     }
 

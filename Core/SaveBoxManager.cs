@@ -194,6 +194,36 @@ public static class SaveBoxManager
             }
         }
     }
+    public static void SanitizeRestoredProfile(string targetVault)
+    {
+        try
+        {
+            if (!Directory.Exists(targetVault)) return;
+            var dirInfo = new DirectoryInfo(targetVault);
+
+            // 1. Remove all Secure Preferences files in the restored vault so Chromium
+            // regenerates valid HMACs for the new vault path without error dialogs.
+            foreach (var file in dirInfo.EnumerateFiles("Secure Preferences", SearchOption.AllDirectories))
+            {
+                try { file.Delete(); } catch { }
+            }
+
+            // 2. Remove regenerable Chromium browser cache databases (Web Data, Account Web Data)
+            // and stale runtime locks that frequently cause ProfileErrorType::DB_CORRUPT or locking on path relocation.
+            foreach (var file in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                string name = file.Name.ToLowerInvariant();
+                if (name is "web data" or "web data-journal" or "web data-wal" or "web data-shm"
+                         or "account web data" or "account web data-journal" or "account web data-wal" or "account web data-shm"
+                         or "singletonlock" or "singletoncookie" or "singletonsocket" or "devtoolsactiveport")
+                {
+                    try { file.Delete(); } catch { }
+                }
+            }
+        }
+        catch { }
+    }
+
     public static void PrepareProfileForLaunch(SaveBoxSnapshot profile)
     {
         try
@@ -205,6 +235,7 @@ public static class SaveBoxManager
                 PathMigrationHelper.MigrateVaultPaths(dataPath, profile.OriginalVaultPath, dataPath);
             }
             PathMigrationHelper.MigrateAnyOldVaultPaths(dataPath, dataPath);
+            SanitizeRestoredProfile(dataPath);
         }
         catch { }
     }
@@ -214,7 +245,12 @@ public static class SaveBoxManager
         {
             var profile = GetProfile(profileId);
             if (profile == null) return false;
-            try { CopyDirectory(Path.Combine(profile.FolderPath, "Data"), targetVault); return true; }
+            try 
+            { 
+                CopyDirectory(Path.Combine(profile.FolderPath, "Data"), targetVault); 
+                SanitizeRestoredProfile(targetVault);
+                return true; 
+            }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
         }
     }
@@ -279,7 +315,7 @@ public static class SaveBoxManager
         foreach (var file in dir.GetFiles())
         {
             // Ownership is local to a live vault and must never enter a saved profile.
-            if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile) continue;
+            if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile or "Secure Preferences") continue;
             // Never copy stale OS shared memory lock files
             if (file.Name.EndsWith("-shm", StringComparison.OrdinalIgnoreCase)) continue;
             if ((file.Attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("Profiles with linked files cannot be copied.");
@@ -346,7 +382,7 @@ public static class SaveBoxManager
 
         foreach (var file in dir.GetFiles())
         {
-            if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile) continue;
+            if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile or "Secure Preferences") continue;
             if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
             // Never copy stale OS shared memory lock files
             if (file.Name.EndsWith("-shm", StringComparison.OrdinalIgnoreCase)) continue;
