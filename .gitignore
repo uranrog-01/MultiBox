@@ -56,3 +56,6 @@ design/*.log
 # Local website templates
 edison-template/
 
+# HyperFrames internal artifacts
+.hyperframes/
+

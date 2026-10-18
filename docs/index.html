@@ -305,6 +305,58 @@
     font-size: 0.88rem; line-height: 1.5; color: var(--text-secondary);
   }
 
+  /* Video Intro Showcase */
+  .video-container {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 16px 40px rgba(36, 27, 16, 0.12);
+    margin-bottom: 50px;
+    transition: border-color 0.3s ease;
+  }
+  .video-container:hover {
+    border-color: var(--card-hover-border);
+  }
+  .video-player-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+  .video-player-wrap video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .video-caption-bar {
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: rgba(255, 255, 255, 0.35);
+    border-top: 1px solid rgba(180, 130, 60, 0.2);
+  }
+  .video-caption-text h4 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1a140e;
+    margin-bottom: 4px;
+  }
+  .video-caption-text p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+  }
+  .video-badges {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
   /* Comparison Matrix */
   .comparison-table-wrap {
     background: var(--card-bg);
@@ -487,7 +539,7 @@
         <ul class="nav-links">
           <li><a href="#hero">Overview</a></li>
           <li><a href="#pillars">The 3 Pillars</a></li>
-          <li><a href="#showcase">Screenshots</a></li>
+          <li><a href="#showcase">Video & Showcase</a></li>
           <li><a href="#comparison">Comparison</a></li>
           <li><a href="#quickstart">Quick Start</a></li>
           <li><a href="#architecture">Architecture</a></li>
@@ -612,10 +664,36 @@
       </div>
     </section>
 
-    <!-- Screenshot Visual Showcase -->
+    <!-- Video Intro & Screenshot Visual Showcase -->
     <section class="section fade-target" id="showcase">
       <div class="container">
-        <p class="section-tag" data-shadow-text="4">INTERFACE & WALKTHROUGH // VISUAL SHOWCASE</p>
+        <p class="section-tag" data-shadow-text="4">VIDEO INTRO // 10-SECOND MOTION SHOWCASE</p>
+        <h2 class="section-title" data-shadow-text="8">MultiBox in Motion</h2>
+        <p class="section-desc" data-shadow-text="4">
+          Authored with HyperFrames — 10 seconds showcasing zer0ne branding, isolated app sandboxes, 3D icon, and live container telemetry.
+        </p>
+
+        <!-- Video Player -->
+        <div class="video-container" data-shadow="18">
+          <div class="video-player-wrap">
+            <video controls poster="assets/intro-preview.gif" preload="metadata">
+              <source src="assets/MultiBox-Intro-10s.mp4" type="video/mp4">
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
+          <div class="video-caption-bar">
+            <div class="video-caption-text">
+              <h4>MultiBox 10s Teaser Intro (1080p 60fps)</h4>
+              <p>Deterministic GSAP timeline • Custom synthesized cyber audio • Full HD 1920x1080</p>
+            </div>
+            <div class="video-badges">
+              <a href="assets/MultiBox-Intro-10s.mp4" download class="btn btn-ghost btn-sm">⬇ Download MP4</a>
+              <a href="https://github.com/uranrog-01/MultiBox/releases/tag/v1.0.3" target="_blank" rel="noopener" class="btn btn-accent btn-sm">Release v1.0.3 🎬</a>
+            </div>
+          </div>
+        </div>
+
+        <p class="section-tag" data-shadow-text="4" style="margin-top: 60px;">INTERFACE & WALKTHROUGH // VISUAL SHOWCASE</p>
         <h2 class="section-title" data-shadow-text="8">Engineered for Elegance & Speed</h2>
         <p class="section-desc" data-shadow-text="4">
           Click any screenshot below to inspect the interface in full high resolution.

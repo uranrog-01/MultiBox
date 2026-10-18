@@ -55,6 +55,22 @@ It acts as an on-demand application container: every copy you launch is placed i
 
 ---
 
+## 🎬 10-Second Video Intro
+
+<div align="center">
+
+<a href="https://github.com/uranrog-01/MultiBox/releases/latest/download/MultiBox-Intro-10s.mp4">
+  <img src="docs/assets/intro-preview.gif" width="760" alt="MultiBox 10-Second Video Intro" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);" />
+</a>
+
+<br/><br/>
+
+[▶️ **Watch Full 1080p Video Intro with Audio (MP4)**](https://github.com/uranrog-01/MultiBox/releases/latest/download/MultiBox-Intro-10s.mp4) &nbsp;|&nbsp; [🌐 **Interactive Website**](https://uranrog-01.github.io/MultiBox/)
+
+</div>
+
+---
+
 ## 📸 Visual Showcase
 
 <div align="center">
