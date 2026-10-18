@@ -30,15 +30,6 @@ $leaf = New-SelfSignedCertificate `
 Export-Certificate -Cert $root -FilePath certs\zer0ne-root-ca.cer | Out-Null
 Export-Certificate -Cert $leaf -FilePath certs\zer0ne-codesigning.cer | Out-Null
 
-# PFX backups (required to sign from another machine or after a Windows reset)
-$pwChars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#$%&'
-$bytes = [byte[]]::new(24)
-[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-$pw = -join ($bytes | ForEach-Object { $pwChars[$_ % $pwChars.Length] })
-$secure = ConvertTo-SecureString $pw -AsPlainText -Force
-Export-PfxCertificate -Cert $root -FilePath certs\zer0ne-root-ca.pfx -Password $secure | Out-Null
-Export-PfxCertificate -Cert $leaf -FilePath certs\zer0ne-codesigning.pfx -Password $secure | Out-Null
-Set-Content -Path certs\PFX-PASSWORD.txt -Value $pw
-
-"ROOT_THUMB=" + $root.Thumbprint
-"LEAF_THUMB=" + $leaf.Thumbprint
+Write-Host "Certificates generated successfully in Cert:\CurrentUser\My"
+Write-Host "ROOT_THUMB=$($root.Thumbprint)"
+Write-Host "LEAF_THUMB=$($leaf.Thumbprint)"
