@@ -185,6 +185,21 @@ namespace MultiBox.Core
         {
             try
             {
+                if (!File.Exists(dbPath)) return;
+                var fileInfo = new FileInfo(dbPath);
+                if (fileInfo.Length == 0 || fileInfo.Length > 100 * 1024 * 1024) return;
+
+                // Fast byte check: do not touch or open databases that do not contain the target paths
+                byte[] fileBytes = File.ReadAllBytes(dbPath);
+                byte[] oldWinBytes = Encoding.UTF8.GetBytes(oldWin);
+                byte[] oldUnixBytes = Encoding.UTF8.GetBytes(oldUnix);
+
+                ReadOnlySpan<byte> span = fileBytes;
+                if (span.IndexOf(oldWinBytes) < 0 && span.IndexOf(oldUnixBytes) < 0)
+                {
+                    return; // No target path found; leave database completely untouched
+                }
+
                 var builder = new SqliteConnectionStringBuilder
                 {
                     DataSource = dbPath,
@@ -196,10 +211,16 @@ namespace MultiBox.Core
                 using var conn = new SqliteConnection(builder.ToString());
                 conn.Open();
 
+                using (var fkCmd = conn.CreateCommand())
+                {
+                    fkCmd.CommandText = "PRAGMA foreign_keys = OFF;";
+                    fkCmd.ExecuteNonQuery();
+                }
+
                 var tables = new List<string>();
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+                    cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '\\_%' ESCAPE '\\' AND name NOT LIKE '%migration%' AND name NOT LIKE '%schema%';";
                     using var reader = cmd.ExecuteReader();
                     while (reader.Read())
                     {
@@ -230,6 +251,7 @@ namespace MultiBox.Core
                     using var tx = conn.BeginTransaction();
                     try
                     {
+                        bool anyUpdated = false;
                         foreach (string col in textColumns)
                         {
                             using var updateCmd = conn.CreateCommand();
@@ -241,15 +263,43 @@ namespace MultiBox.Core
                             updateCmd.Parameters.AddWithValue("@newUnix", newUnix);
                             updateCmd.Parameters.AddWithValue("@searchWin", $"%{oldWin}%");
                             updateCmd.Parameters.AddWithValue("@searchUnix", $"%{oldUnix}%");
-                            updateCmd.ExecuteNonQuery();
+                            int affected = updateCmd.ExecuteNonQuery();
+                            if (affected > 0) anyUpdated = true;
                         }
-                        tx.Commit();
+
+                        if (anyUpdated)
+                        {
+                            using var checkCmd = conn.CreateCommand();
+                            checkCmd.Transaction = tx;
+                            checkCmd.CommandText = "PRAGMA quick_check;";
+                            string? checkResult = checkCmd.ExecuteScalar()?.ToString();
+                            if (string.Equals(checkResult, "ok", StringComparison.OrdinalIgnoreCase))
+                            {
+                                tx.Commit();
+                            }
+                            else
+                            {
+                                tx.Rollback();
+                            }
+                        }
+                        else
+                        {
+                            tx.Commit();
+                        }
                     }
                     catch
                     {
                         tx.Rollback();
                     }
                 }
+
+                try
+                {
+                    using var walCmd = conn.CreateCommand();
+                    walCmd.CommandText = "PRAGMA wal_checkpoint(PASSIVE);";
+                    walCmd.ExecuteNonQuery();
+                }
+                catch { }
 
                 conn.Close();
             }
