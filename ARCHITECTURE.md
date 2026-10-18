@@ -110,3 +110,4 @@ MultiBox's interface pairs Microsoft Edge WebView2 with native Windows Forms:
 - **Mark-of-the-Web (Zone.Identifier)**: Downloaded executables automatically unblock themselves on first launch via Win32 `DeleteFileW(exePath + ":Zone.Identifier")`.
 - **PE Attribute Certificate Table**: The standalone executable is signed with standard Windows Authenticode (`WIN_CERTIFICATE`), satisfying Windows Defender and SmartScreen integrity checks.
 - **In-App Trust Escalation**: Provides a 1-click self-signed root installation via Windows CryptoAPI (`CertAddCertificateContextToStore`), permanently eliminating publisher warnings for offline or internal deployments.
+
