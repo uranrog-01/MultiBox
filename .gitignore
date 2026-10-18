@@ -21,19 +21,12 @@ dist/
 *.tar.gz
 *.bak
 
-# Security & Private Credentials - NEVER commit private keys or passwords
+# Certificates and scripts - everything integrated into exe
+certs/
+*.cer
 *.pfx
 *.key
-certs/*.pfx
-certs/*.key
-certs/*PASSWORD*
-certs/*password*
-certs/*.txt
-
-# Public certificates are fine to distribute for verification
-!zer0ne-root.cer
-!zer0ne.cer
-!certs/*.cer
+*.cmd
 
 # IDE and Editor files
 .vs/
