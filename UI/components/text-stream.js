@@ -61,38 +61,45 @@
       this.track.appendChild(thirdCopy);
     }
 
+    updateMetrics() {
+      if (!this.content || !this.viewport) return;
+      this.distance = this.content.offsetHeight;
+      if (!this.distance) return;
+
+      // Wrap current position within distance
+      while (this.currentY <= -this.distance) this.currentY += this.distance;
+      while (this.currentY > 0) this.currentY -= this.distance;
+    }
+
     initAnimation() {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-      const updateMetrics = () => {
-        if (!this.content || !this.viewport) return;
-        this.distance = this.content.offsetHeight;
-        if (!this.distance) return;
-
-        // Wrap current position within distance
-        while (this.currentY <= -this.distance) this.currentY += this.distance;
-        while (this.currentY > 0) this.currentY -= this.distance;
-      };
-
-      updateMetrics();
-      window.addEventListener('resize', updateMetrics);
+      this.updateMetrics();
+      window.addEventListener('resize', () => this.updateMetrics());
 
       let lastTime = performance.now();
       const tick = (now) => {
-        if (!this.paused && this.distance > 0) {
-          const deltaTime = Math.min(now - lastTime, 50);
-          lastTime = now;
-          const frameFactor = deltaTime / 16.666;
+        if (!this.paused) {
+          if (this.distance <= 0) {
+            this.updateMetrics();
+          }
+          if (this.distance > 0) {
+            const deltaTime = Math.min(now - lastTime, 50);
+            lastTime = now;
+            const frameFactor = deltaTime / 16.666;
 
-          // Smooth velocity interpolation (lerp factor 0.14 from ObsidianUI spec)
-          this.currentVelocity += (this.targetVelocity - this.currentVelocity) * 0.14;
-          this.currentY += this.currentVelocity * frameFactor;
+            // Smooth velocity interpolation (lerp factor 0.14 from ObsidianUI spec)
+            this.currentVelocity += (this.targetVelocity - this.currentVelocity) * 0.14;
+            this.currentY += this.currentVelocity * frameFactor;
 
-          // Wrap seamlessly
-          while (this.currentY <= -this.distance) this.currentY += this.distance;
-          while (this.currentY > 0) this.currentY -= this.distance;
+            // Wrap seamlessly
+            while (this.currentY <= -this.distance) this.currentY += this.distance;
+            while (this.currentY > 0) this.currentY -= this.distance;
 
-          this.track.style.transform = `translate3d(0, ${this.currentY}px, 0)`;
+            this.track.style.transform = `translate3d(0, ${this.currentY}px, 0)`;
+          } else {
+            lastTime = now;
+          }
         } else {
           lastTime = now;
         }

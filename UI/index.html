@@ -1468,55 +1468,6 @@
         <button class="settings-folder-tile" type="button" onclick="openVaultExplorer()" aria-label="Open Vault folder"><svg class="settings-tile-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg><span>Vault<small>Temporary</small></span><svg class="settings-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></button>
       </div>
 
-      <!-- Modern About Section with Logo & ObsidianUI TextStream -->
-      <section class="settings-section settings-about-card" aria-labelledby="aboutHeading">
-        <div class="about-hero-header">
-          <div class="about-logo-wrapper" title="Z1 zer0ne">
-            <img src="zer0ne-logo.png" alt="zer0ne Logo" class="about-brand-logo" />
-          </div>
-          <div class="about-header-text">
-            <div class="about-app-title">MultiBox <span class="about-version-badge">v1.0.4</span></div>
-            <div class="about-tagline">Zero-Trace Application Sandbox &amp; Isolation</div>
-          </div>
-        </div>
-
-        <div class="about-stream-wrapper">
-          <div id="obsidianTextStreamContainer"></div>
-        </div>
-
-        <div class="about-meta-grid">
-          <div class="about-meta-item">
-            <span class="about-meta-label">CREATOR</span>
-            <span class="about-meta-value"><span class="about-creator-name">zer0ne</span> (Z1)</span>
-          </div>
-          <div class="about-meta-item">
-            <span class="about-meta-label">CONTAINMENT</span>
-            <span class="about-meta-value status-secure"><i class="status-dot"></i>Active &amp; Ephemeral</span>
-          </div>
-          <div class="about-meta-item">
-            <span class="about-meta-label">RUNTIME</span>
-            <span class="about-meta-value">.NET 10 • Native x64</span>
-          </div>
-          <div class="about-meta-item">
-            <span class="about-meta-label">LICENSE</span>
-            <span class="about-meta-value">MIT Open Source</span>
-          </div>
-        </div>
-
-        <div class="about-action-row">
-          <a class="about-btn about-btn-github" href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener noreferrer" title="View Source on GitHub">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            <span>GitHub Repo</span>
-            <svg class="about-ext-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
-          </a>
-          <a class="about-btn about-btn-creator" href="https://github.com/uranrog-01" target="_blank" rel="noopener noreferrer" title="View zer0ne Profile">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span>zer0ne Profile</span>
-            <svg class="about-ext-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
-          </a>
-        </div>
-      </section>
-
       <details class="settings-advanced" id="settingsAdvanced">
         <summary><span>More options</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></summary>
         <div class="settings-advanced-body">
@@ -1535,7 +1486,108 @@
         </div>
       </details>
       <button class="action-btn danger settings-delete-all" type="button" onclick="openPurgeConfirmModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>Delete sessions &amp; saved profiles…</button>
-      <footer class="settings-about"><span>MultiBox <span class="settings-version">1.0.4</span></span><a href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener noreferrer">zer0ne (Z1) ↗</a></footer>
+      <footer class="settings-about">
+        <span>MultiBox <span class="settings-version">1.0.4</span></span>
+        <button type="button" class="settings-about-btn" id="openAboutBtn" onclick="openAboutModal()" title="About MultiBox &amp; Creator">
+          <span class="about-pill-tag">About</span>
+          <span>zer0ne (Z1) ↗</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Dedicated About Slide-Up Modal -->
+  <div class="settings-modal about-modal" id="aboutModal" aria-labelledby="aboutModalHeading" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="settings-header">
+      <div class="panel-heading">
+        <div class="panel-heading-icon" style="background: rgba(255, 149, 0, 0.15); border-color: rgba(255, 149, 0, 0.35); color: #ff9500;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        </div>
+        <div>
+          <div class="panel-kicker">MultiBox</div>
+          <div class="settings-title" id="aboutModalHeading">About MultiBox</div>
+          <div class="panel-subtitle">Zero-Trace Application Sandbox</div>
+        </div>
+      </div>
+      <button class="settings-close" id="aboutModalCloseBtn" onclick="closeAboutModal()" type="button" aria-label="Close About">×</button>
+    </div>
+
+    <div class="settings-scroll-body about-scroll-body">
+      <!-- Cyber Artwork Banner -->
+      <div class="about-banner-card">
+        <img src="zer0ne-banner.png" alt="zer0ne Cyber Artwork" class="about-banner-img" />
+        <div class="about-banner-overlay">
+          <span class="about-banner-tag">zer0ne · MultiBox v1.0.4</span>
+        </div>
+      </div>
+
+      <!-- Hero Header with Logo -->
+      <div class="about-hero-header">
+        <div class="about-logo-wrapper" title="Z1 zer0ne">
+          <img src="zer0ne-logo.png" alt="zer0ne Logo" class="about-brand-logo" />
+        </div>
+        <div class="about-header-text">
+          <div class="about-app-title">MultiBox <span class="about-version-badge">v1.0.4</span></div>
+          <div class="about-tagline">Zero-Trace Application Sandbox &amp; Ephemeral Vaults</div>
+        </div>
+      </div>
+
+      <!-- ObsidianUI TextStream Ribbon -->
+      <div class="about-stream-wrapper">
+        <div id="obsidianTextStreamContainer"></div>
+      </div>
+
+      <!-- Creator Profile Card -->
+      <div class="about-creator-card">
+        <div class="about-creator-header">
+          <div class="about-creator-avatar">Z1</div>
+          <div class="about-creator-title">
+            <span class="about-creator-label">ENGINEERED BY</span>
+            <span class="about-creator-fullname"><span>zer0ne</span> (Z1)</span>
+          </div>
+        </div>
+        <p class="about-creator-desc">
+          Designed and engineered by zer0ne (Z1) to deliver high-performance zero-trace ephemeral execution, process containment, and seamless snapshot persistence for Windows applications.
+        </p>
+      </div>
+
+      <!-- Meta Specifications Grid -->
+      <div class="about-meta-grid">
+        <div class="about-meta-item">
+          <span class="about-meta-label">CREATOR</span>
+          <span class="about-meta-value"><span class="about-creator-name">zer0ne</span> (Z1)</span>
+        </div>
+        <div class="about-meta-item">
+          <span class="about-meta-label">CONTAINMENT</span>
+          <span class="about-meta-value status-secure"><i class="status-dot"></i>Active &amp; Ephemeral</span>
+        </div>
+        <div class="about-meta-item">
+          <span class="about-meta-label">RUNTIME</span>
+          <span class="about-meta-value">.NET 10 • Native x64</span>
+        </div>
+        <div class="about-meta-item">
+          <span class="about-meta-label">LICENSE</span>
+          <span class="about-meta-value">MIT Open Source</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="about-action-row">
+        <a class="about-btn about-btn-github" href="https://github.com/uranrog-01/MultiBox" target="_blank" rel="noopener noreferrer" title="View MultiBox Source on GitHub">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub Repo</span>
+          <svg class="about-ext-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+        </a>
+        <a class="about-btn about-btn-creator" href="https://github.com/uranrog-01" target="_blank" rel="noopener noreferrer" title="View zer0ne Profile">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>zer0ne Profile</span>
+          <svg class="about-ext-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M7 7h10v10"/></svg>
+        </a>
+      </div>
+
+      <button type="button" class="about-close-action-btn" onclick="closeAboutModal()">
+        <span>Close About</span>
+      </button>
     </div>
   </div>
 
@@ -1769,6 +1821,11 @@
       // Escape key closes any active drawer or modal
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !document.querySelector('dialog[open]')) {
+          if (document.getElementById('aboutModal')?.classList.contains('open')) {
+            closeAboutModal();
+            e.stopPropagation();
+            return;
+          }
           closeAllDrawers();
         }
       });
@@ -1917,6 +1974,7 @@
     }
 
     function closeAllDrawers() {
+      closeAboutModal();
       closeSettings();
       closeTaskManager();
       closeVaultDrawer();
@@ -2039,11 +2097,35 @@
     function openSettings() {
       window.MultiBoxPanels?.open('settings');
       window.chrome_backend?.getContextMenuStatus();
-      if (typeof initAboutTextStream === 'function') initAboutTextStream();
     }
 
     function closeSettings() {
+      closeAboutModal();
       window.MultiBoxPanels?.close('settings');
+    }
+
+    function openAboutModal() {
+      const modal = document.getElementById('aboutModal');
+      if (modal) {
+        modal.classList.add('open');
+        modal.removeAttribute('aria-hidden');
+        document.getElementById('aboutModalCloseBtn')?.focus({ preventScroll: true });
+      }
+      if (typeof initAboutTextStream === 'function') {
+        initAboutTextStream();
+      }
+      if (window.textStreamInstance?.updateMetrics) {
+        window.textStreamInstance.updateMetrics();
+      }
+    }
+
+    function closeAboutModal() {
+      const modal = document.getElementById('aboutModal');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.getElementById('openAboutBtn')?.focus({ preventScroll: true });
+      }
     }
 
     /* Process Task Manager Logic */
@@ -2385,6 +2467,9 @@
           ],
           speed: -0.65
         });
+        window.textStreamInstance = textStreamInstance;
+      } else if (textStreamInstance?.updateMetrics) {
+        textStreamInstance.updateMetrics();
       }
     }
     document.addEventListener('DOMContentLoaded', initAboutTextStream);

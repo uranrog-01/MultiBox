@@ -109,7 +109,8 @@ internal static class LiveProfileSnapshot
                 {
                     if (!child.Exists || (child.Attributes & FileAttributes.ReparsePoint) != 0) continue;
                     string relative = Path.GetRelativePath(root, child.FullName);
-                    if (SaveBoxManager.ExcludeGeneratedFolder(relative) || IsBrowserCache(relative, profileRoot)) continue;
+                    if (SaveBoxManager.ExcludeGeneratedFolder(relative) || IsBrowserCache(relative, profileRoot) ||
+                        chromiumProfile && IsCacheFolderName(child.Name)) continue;
                     try { bytes += CopyDirectory(child.FullName, Path.Combine(destination, child.Name), root, profileRoot, regenerated, blocked, sourceClosed); }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     {
@@ -203,7 +204,19 @@ internal static class LiveProfileSnapshot
         if (!path.StartsWith(profileRoot, StringComparison.OrdinalIgnoreCase)) return false;
         string[] segments = path[profileRoot.Length..].Split('/');
         int index = segments.Length == 1 ? 0 : segments.Length == 2 && (segments[0].Equals("Default", StringComparison.OrdinalIgnoreCase) || segments[0].StartsWith("Profile ", StringComparison.OrdinalIgnoreCase)) ? 1 : -1;
-        return index >= 0 && segments[index].ToLowerInvariant() is "cache" or "code cache" or "gpucache" or "dawncache" or "shadercache" or "grshadercache" or "crashpad";
+        return index >= 0 && IsCacheFolderName(segments[index]);
+    }
+    private static bool IsCacheFolderName(string name) => name.ToLowerInvariant() is "cache" or "code cache" or "gpucache" or "dawncache" or
+        "dawngraphitecache" or "dawnwebgpucache" or "gpupersistentcache" or "shadercache" or "grshadercache" or "crashpad";
+    /// <summary>
+    /// A regenerable cache folder directly inside any recognized Chromium/Electron/WebView2 profile.
+    /// Apps that pick their own userData folder (OpenCode: ai.opencode.desktop, Tauri: &lt;id&gt;\EBWebView)
+    /// never match the exe-named profile root, so this is checked by layout rather than by name.
+    /// </summary>
+    internal static bool IsRegenerableCache(string directory, string root)
+    {
+        string? parent = Path.GetDirectoryName(directory);
+        return parent != null && IsCacheFolderName(Path.GetFileName(directory)) && IsChromiumStorageDirectory(parent, root);
     }
     private static bool IsSidecarName(string name) => name.EndsWith("-wal", StringComparison.OrdinalIgnoreCase) ||
         name.EndsWith("-shm", StringComparison.OrdinalIgnoreCase) || name.EndsWith("-journal", StringComparison.OrdinalIgnoreCase);

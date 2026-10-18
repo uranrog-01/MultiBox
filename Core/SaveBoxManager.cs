@@ -298,7 +298,9 @@ public static class SaveBoxManager
             path.StartsWith("User/.codex/.tmp", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("User/.codex/tmp", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("User/.codex/cache", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("User/.codex/.sandbox", StringComparison.OrdinalIgnoreCase)) return true;
+            path.StartsWith("User/.codex/.sandbox", StringComparison.OrdinalIgnoreCase) ||
+            // OpenCode Desktop re-stages its ~200 MB bundled CLI here on every launch when missing.
+            path.Equals("User/AppData/Roaming/ai.opencode.desktop/cli", StringComparison.OrdinalIgnoreCase)) return true;
         // Only generated installer folders under known app-owned branches, never arbitrary user folders.
         string[] roots = ["User/.codex/", "User/AppData/Roaming/Codex/", "User/AppData/Roaming/ChatGPT/", "User/AppData/Local/OpenAI/"];
         return roots.Any(root => path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) &&
@@ -372,6 +374,10 @@ public static class SaveBoxManager
         catch { return 0; }
     }
 
+    // Auto-sync follows the same exclusions as a full save, so caches never accumulate in a profile.
+    private static bool IsSkippedFolder(string directory, string sourceRoot) =>
+        ExcludeGeneratedFolder(Path.GetRelativePath(sourceRoot, directory)) || LiveProfileSnapshot.IsRegenerableCache(directory, sourceRoot);
+
     private static void SyncDirectories(string source, string destination, string? sourceRoot = null)
     {
         sourceRoot ??= source;
@@ -418,7 +424,7 @@ public static class SaveBoxManager
 
         foreach (var child in dir.GetDirectories())
         {
-            if (ExcludeGeneratedFolder(Path.GetRelativePath(sourceRoot, child.FullName))) continue;
+            if (IsSkippedFolder(child.FullName, sourceRoot)) continue;
             SyncDirectories(child.FullName, Path.Combine(destination, child.Name), sourceRoot);
         }
 
@@ -428,7 +434,7 @@ public static class SaveBoxManager
             foreach (var destSubDir in new DirectoryInfo(destination).GetDirectories())
             {
                 string srcSubDir = Path.Combine(source, destSubDir.Name);
-                if (!Directory.Exists(srcSubDir))
+                if (!Directory.Exists(srcSubDir) || IsSkippedFolder(srcSubDir, sourceRoot))
                 {
                     try { EphemeralVault.DeleteTree(destSubDir.FullName); } catch { }
                 }

@@ -233,56 +233,8 @@ namespace MultiBox.Core
                     // 2. Create Job Object for atomic process-tree management
                     _jobObject ??= new JobObject();
 
-                    // 3. Prepare ProcessStartInfo with environment redirection
-                    var startInfo = new ProcessStartInfo
-                    {
-                        FileName = targetExe,
-                        WorkingDirectory = Path.GetDirectoryName(targetExe) ?? string.Empty,
-                        UseShellExecute = false
-                    };
-
-                    // Redirect primary profile paths to ephemeral vault
-                    startInfo.Environment["APPDATA"] = _vault.RoamingAppData;
-                    startInfo.Environment["LOCALAPPDATA"] = _vault.LocalAppData;
-                    startInfo.Environment["USERPROFILE"] = _vault.UserProfile;
-                    startInfo.Environment["HOME"] = _vault.UserProfile;
-
-                    string rootDrive = Path.GetPathRoot(_vault.UserProfile)?.TrimEnd('\\') ?? "C:";
-                    string homePath = _vault.UserProfile.Length > rootDrive.Length 
-                        ? _vault.UserProfile.Substring(rootDrive.Length) 
-                        : "\\";
-
-                    startInfo.Environment["HOMEDRIVE"] = rootDrive;
-                    startInfo.Environment["HOMEPATH"] = homePath;
-                    startInfo.Environment["TEMP"] = _vault.TempDir;
-                    startInfo.Environment["TMP"] = _vault.TempDir;
-                    startInfo.Environment["MULTIBOX_ISOLATED"] = "1";
-                    startInfo.Environment["MULTIBOX_VAULT"] = _vault.VaultId;
-
-                    // Browser config home overrides
-                    startInfo.Environment["CHROME_CONFIG_HOME"] = Path.Combine(_vault.UserProfile, ".config");
-                    startInfo.Environment["XDG_CONFIG_HOME"] = Path.Combine(_vault.UserProfile, ".config");
-                    startInfo.Environment["XDG_DATA_HOME"] = _vault.LocalAppData;
-
-                    // Application specific overrides for seamless launch
-                    string zcodeVaultDir = Path.Combine(_vault.RoamingAppData, "ZCode");
-                    startInfo.Environment["ZCODE_DESKTOP_HOME_DIR"] = _vault.UserProfile;
-                    startInfo.Environment["ZCODE_DESKTOP_USER_DATA_DIR"] = zcodeVaultDir;
-                    startInfo.Environment["ZCODE_DESKTOP_SESSION_DATA_DIR"] = Path.Combine(zcodeVaultDir, "session");
-
-                    // OpenAI Codex / ChatGPT Desktop specific overrides
-                    string codexHome = Path.Combine(_vault.UserProfile, ".codex");
-                    string codexVaultDir = Path.Combine(_vault.RoamingAppData, "Codex");
-                    Directory.CreateDirectory(codexHome);
-                    Directory.CreateDirectory(codexVaultDir);
-                    startInfo.Environment["CODEX_HOME"] = codexHome;
-                    startInfo.Environment["CODEX_ELECTRON_USER_DATA_PATH"] = codexVaultDir;
-                    startInfo.Environment["CODEX_DESKTOP_USER_DATA_DIR"] = codexVaultDir;
-                    startInfo.Environment["CODEX_DESKTOP_SESSION_DATA_DIR"] = Path.Combine(codexVaultDir, "session");
-                    startInfo.Environment["CODEX_DESKTOP_HOME_DIR"] = _vault.UserProfile;
-
-                    // 4. Detect and optimize Electron / Chromium / Mozilla engines
-                    var profile = ApplyEngineArguments(startInfo, targetExe, _vault);
+                    // 3-5. Environment redirection, engine profile flags and per-app fixes
+                    var startInfo = CreateStartInfo(targetExe, _vault, out var profile);
                     _profileMonitor?.Dispose();
                     _profileMonitor = new ProfileActivityMonitor(profile.Path, profile.Method, profile.Explicit);
 
@@ -302,11 +254,71 @@ namespace MultiBox.Core
                 }
                 catch (Exception ex)
                 {
-                    errorMessage = ex.Message;
+                    errorMessage = AppCompatibility.DescribeStartFailure(rawPath, ex);
                     CleanupInternal(preserveExistingVault);
                     return false;
                 }
             }
+        }
+
+        /// <summary>Builds the isolated launch: vault environment, engine profile flags and per-app fixes.</summary>
+        internal static ProcessStartInfo CreateStartInfo(string targetExe, EphemeralVault vault, out (string Path, string Method, bool Explicit) profile)
+        {
+            // 3. Prepare ProcessStartInfo with environment redirection
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = targetExe,
+                WorkingDirectory = Path.GetDirectoryName(targetExe) ?? string.Empty,
+                UseShellExecute = false
+            };
+
+            // Redirect primary profile paths to ephemeral vault
+            startInfo.Environment["APPDATA"] = vault.RoamingAppData;
+            startInfo.Environment["LOCALAPPDATA"] = vault.LocalAppData;
+            startInfo.Environment["USERPROFILE"] = vault.UserProfile;
+            startInfo.Environment["HOME"] = vault.UserProfile;
+
+            string rootDrive = Path.GetPathRoot(vault.UserProfile)?.TrimEnd('\\') ?? "C:";
+            string homePath = vault.UserProfile.Length > rootDrive.Length 
+                ? vault.UserProfile.Substring(rootDrive.Length) 
+                : "\\";
+
+            startInfo.Environment["HOMEDRIVE"] = rootDrive;
+            startInfo.Environment["HOMEPATH"] = homePath;
+            startInfo.Environment["TEMP"] = vault.TempDir;
+            startInfo.Environment["TMP"] = vault.TempDir;
+            startInfo.Environment["MULTIBOX_ISOLATED"] = "1";
+            startInfo.Environment["MULTIBOX_VAULT"] = vault.VaultId;
+
+            // Browser config home overrides
+            startInfo.Environment["CHROME_CONFIG_HOME"] = Path.Combine(vault.UserProfile, ".config");
+            startInfo.Environment["XDG_CONFIG_HOME"] = Path.Combine(vault.UserProfile, ".config");
+            startInfo.Environment["XDG_DATA_HOME"] = vault.LocalAppData;
+
+            // Application specific overrides for seamless launch
+            string zcodeVaultDir = Path.Combine(vault.RoamingAppData, "ZCode");
+            startInfo.Environment["ZCODE_DESKTOP_HOME_DIR"] = vault.UserProfile;
+            startInfo.Environment["ZCODE_DESKTOP_USER_DATA_DIR"] = zcodeVaultDir;
+            startInfo.Environment["ZCODE_DESKTOP_SESSION_DATA_DIR"] = Path.Combine(zcodeVaultDir, "session");
+
+            // OpenAI Codex / ChatGPT Desktop specific overrides
+            string codexHome = Path.Combine(vault.UserProfile, ".codex");
+            string codexVaultDir = Path.Combine(vault.RoamingAppData, "Codex");
+            Directory.CreateDirectory(codexHome);
+            Directory.CreateDirectory(codexVaultDir);
+            startInfo.Environment["CODEX_HOME"] = codexHome;
+            startInfo.Environment["CODEX_ELECTRON_USER_DATA_PATH"] = codexVaultDir;
+            startInfo.Environment["CODEX_DESKTOP_USER_DATA_DIR"] = codexVaultDir;
+            startInfo.Environment["CODEX_DESKTOP_SESSION_DATA_DIR"] = Path.Combine(codexVaultDir, "session");
+            startInfo.Environment["CODEX_DESKTOP_HOME_DIR"] = vault.UserProfile;
+
+            // 4. Detect and optimize Electron / Chromium / Mozilla engines
+            profile = ApplyEngineArguments(startInfo, targetExe, vault);
+
+            // 5. Per-app fixes for fixed localhost ports and single-instance locks
+            try { AppCompatibility.Prepare(startInfo, targetExe, vault); } catch { /* Never block the launch. */ }
+
+            return startInfo;
         }
 
         private static (string Path, string Method, bool Explicit) ApplyEngineArguments(ProcessStartInfo startInfo, string targetExe, EphemeralVault vault)
