@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: User guide and FAQ
+    url: https://uranrog-01.github.io/MultiBox/#faq
+    about: How to use MultiBox, and answers to common problems.
+  - name: Report a security problem privately
+    url: https://github.com/uranrog-01/MultiBox/security/advisories/new
+    about: Please don't open a public issue for security problems.

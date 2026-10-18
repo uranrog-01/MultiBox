@@ -88,7 +88,7 @@ internal static class LiveProfileSnapshot
                     {
                         if (databases.Contains(file.Name))
                         {
-                            bytes += WithRetry(() => BackupSqlite(file.FullName, target, sourceClosed));
+                            bytes += BackupWithRetry(file.FullName, target, sourceClosed);
                         }
                         else
                         {
@@ -233,11 +233,40 @@ internal static class LiveProfileSnapshot
         Span<byte> header = stackalloc byte[16];
         return input.ReadAtLeast(header, 16, false) == 16 && header.SequenceEqual(SqliteHeader);
     }
-    private static long BackupSqlite(string source, string destination, bool sourceClosed)
+    private static long BackupWithRetry(string source, string destination, bool sourceClosed)
+    {
+        // Right after an app exits, or while antivirus scans a freshly written file, a database or its
+        // -wal/-shm can be held for a moment (e.g. SQLITE_IOERR_TRUNCATE, 1546). Retry busy, locked and
+        // I/O errors; wait longer when the app is already closed for Save, since nothing else is waiting.
+        int[] delays = sourceClosed ? [150, 300, 600, 1000, 1500] : [100, 200];
+        bool readOnlySource = false;
+        for (int attempt = 0; ; attempt++)
+        {
+            try { return BackupSqlite(source, destination, sourceClosed, readOnlySource); }
+            catch (Exception ex) when (attempt < delays.Length && IsTransient(ex))
+            {
+                // A read-only source never checkpoints or truncates the app's own -wal/-shm files.
+                if (ex is SqliteException { SqliteErrorCode: 10 }) readOnlySource = true;
+                DeletePartialCopy(destination);
+                Thread.Sleep(delays[attempt]);
+            }
+        }
+    }
+    private static bool IsTransient(Exception ex) => ex is IOException || ex is SqliteException { SqliteErrorCode: 5 or 6 or 10 or 14 };
+    private static void DeletePartialCopy(string destination)
+    {
+        // Only our private staging copy; the app's own database is never deleted.
+        foreach (string suffix in new[] { "", "-journal", "-wal", "-shm" })
+        {
+            try { File.Delete(destination + suffix); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+    }
+    private static long BackupSqlite(string source, string destination, bool sourceClosed, bool readOnlySource = false)
     {
         // Pooling is off so saving does not keep handles on the running app's profile afterwards.
         SqliteConnection? input = null;
-        bool readWrite = sourceClosed && (File.GetAttributes(source) & FileAttributes.ReadOnly) == 0;
+        bool readWrite = sourceClosed && !readOnlySource && (File.GetAttributes(source) & FileAttributes.ReadOnly) == 0;
         try
         {
             input = new SqliteConnection(new SqliteConnectionStringBuilder {
@@ -305,7 +334,7 @@ internal static class LiveProfileSnapshot
         for (int attempt = 0; ; attempt++)
         {
             try { return operation(); }
-            catch (Exception ex) when (attempt < 2 && (ex is IOException || ex is SqliteException se && se.SqliteErrorCode is 5 or 6))
+            catch (Exception ex) when (attempt < 2 && IsTransient(ex))
             { Thread.Sleep(100 * (attempt + 1)); }
         }
     }

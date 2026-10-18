@@ -111,7 +111,9 @@
       card.className = 'saved-profile';
       card.innerHTML = '<div class="saved-profile-top"><div class="saved-profile-mark">' + archiveIcon + '</div><div class="saved-profile-info"><div class="saved-profile-name"></div><div class="saved-profile-meta"></div></div></div><div class="saved-profile-actions"><button class="vault-button primary" type="button">Open</button><button class="vault-button danger" type="button">Delete</button></div>';
       card.querySelector('.saved-profile-name').textContent = profileName;
-      card.querySelector('.saved-profile-meta').textContent = name.replace(/\.exe$/i, '');
+      // When and how big matter most before opening or deleting a copy, so show them, not just in a tooltip.
+      const sizeText = size >= 1024 ? `${(size / 1024).toFixed(1)} GB` : size < 1 ? '<1 MB' : `${Math.round(size)} MB`;
+      card.querySelector('.saved-profile-meta').textContent = `${name.replace(/\.exe$/i, '')} · ${date} · ${sizeText}`;
       card.querySelector('.saved-profile-meta').title = `${size} MB · Saved ${date}`;
       card.querySelector('.saved-profile-name').title = path;
       card.querySelector('.primary').addEventListener('click', () => launchSaved(profileId));

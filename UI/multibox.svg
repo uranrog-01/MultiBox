@@ -1,5 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="2" y="2" width="60" height="60" rx="17" fill="#c6fa46"/>
-  <rect x="15" y="14" width="25" height="25" rx="5" fill="none" stroke="#1b270b" stroke-width="4.5"/>
-  <rect x="25" y="25" width="25" height="25" rx="5" fill="#c6fa46" stroke="#1b270b" stroke-width="4.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- MultiBox app icon, 32 px and up. Edges sit on an 8-unit grid (1 px at 32 px). -->
+  <defs>
+    <linearGradient id="lime" gradientUnits="userSpaceOnUse" x1="40" y1="8" x2="216" y2="248">
+      <stop offset="0" stop-color="#e4ff80"/>
+      <stop offset="0.5" stop-color="#c6fa46"/>
+      <stop offset="1" stop-color="#93d722"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22330f"/>
+      <stop offset="1" stop-color="#0d1507"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="60" fill="url(#lime)"/>
+  <rect x="8" y="8" width="240" height="240" rx="60" fill="url(#gloss)"/>
+  <rect x="9" y="9" width="238" height="238" rx="59" fill="none" stroke="#0d1507" stroke-opacity="0.22" stroke-width="2"/>
+  <!-- Back window: the original app -->
+  <rect x="56" y="56" width="104" height="104" rx="24" fill="url(#ink)"/>
+  <rect x="72" y="72" width="72" height="72" rx="12" fill="url(#lime)"/>
+  <!-- Gap that separates the copies -->
+  <rect x="96" y="96" width="120" height="120" rx="32" fill="url(#lime)"/>
+  <!-- Front window: another copy -->
+  <rect x="104" y="104" width="104" height="104" rx="26" fill="url(#ink)"/>
+  <rect x="128" y="148" width="56" height="16" rx="8" fill="#c6fa46"/>
+  <rect x="148" y="128" width="16" height="56" rx="8" fill="#c6fa46"/>
 </svg>

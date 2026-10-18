@@ -144,16 +144,18 @@ namespace MultiBox.Core
             if (job == null) { State = SessionState.Preserved; return true; }
             int[] ids = job.GetProcessIds();
             bool visible = SessionWindows.HasVisibleWindow(ids);
-            foreach (int id in ids)
-            {
-                try { using var app = Process.GetProcessById(id); app.CloseMainWindow(); }
-                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
-            }
+            // Close every real window, not just the one .NET guesses is "main" (wrong for Tauri apps).
+            SessionWindows.RequestClose(ids);
             var wait = Stopwatch.StartNew();
+            var lastRequest = Stopwatch.StartNew();
             while (visible && job.GetProcessIds().Length > 0 && wait.Elapsed < TimeSpan.FromSeconds(12))
             {
                 Thread.Sleep(100);
                 if (!SessionWindows.HasVisibleWindow(job.GetProcessIds())) break;
+                // Apps that are still starting can swap or add windows (Codex shows a new one after the first);
+                // ask again so a window that appeared after the first request is not left open.
+                // On an "unsaved work" prompt a close request acts as Cancel, so nothing is discarded.
+                if (lastRequest.Elapsed >= TimeSpan.FromSeconds(2)) { SessionWindows.RequestClose(job.GetProcessIds()); lastRequest.Restart(); }
             }
             if (SessionWindows.HasVisibleWindow(job.GetProcessIds()))
             {
@@ -238,8 +240,14 @@ namespace MultiBox.Core
                     _profileMonitor?.Dispose();
                     _profileMonitor = new ProfileActivityMonitor(profile.Path, profile.Method, profile.Explicit);
 
+                    // Neither this copy nor a normal copy of the app may capture the other's launches.
+                    var heldWindows = SingleInstanceLocks.PrepareLaunch(targetExe);
+
                     // Attach before the app runs so its children stay in this session.
-                    _process = _jobObject.Start(startInfo);
+                    try { _process = _jobObject.Start(startInfo); }
+                    catch { heldWindows.Restore(); throw; }
+                    var job = _jobObject;
+                    SingleInstanceLocks.WatchSession(() => { try { return job.GetProcessIds(); } catch (Exception ex) when (ex is ObjectDisposedException or System.ComponentModel.Win32Exception or InvalidOperationException) { return []; } }, heldWindows, _vault.VaultId);
 
                     State = SessionState.Running;
 

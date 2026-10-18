@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in MultiBox itself is broken.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What went wrong?
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open MultiBox
+        2. Click ...
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or error text
+  - type: input
+    id: version
+    attributes:
+      label: MultiBox version
+      description: Settings → bottom left.
+      placeholder: "1.0.4"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and display scale
+      placeholder: "Windows 11 24H2, 150%"

@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Renders the real UI (../../UI/index.html) with sample data for docs screenshots.
+     capture.html?view=dashboard|vault|tasks|settings  — see design/screenshots/capture.ps1 -->
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 620px; height: 960px; overflow: hidden; background: #07080a; }
+  iframe { border: 0; width: 620px; height: 960px; display: block; }
+</style></head><body>
+<iframe id="ui" src="../../UI/index.html"></iframe>
+<script>
+const view = new URLSearchParams(location.search).get('view') || 'dashboard';
+const ui = document.getElementById('ui');
+ui.addEventListener('load', () => setTimeout(() => {
+  const w = ui.contentWindow, d = ui.contentDocument;
+  // Panels slide in; screenshots show their final position.
+  const style = d.createElement('style'); style.textContent = '.settings-modal, .panel-backdrop, .power-label, .power-btn * { transition: none !important; }'; d.head.append(style);
+  const check = { status: 'observed', label: 'Profile activity confirmed', detail: '', method: 'Chromium/Electron profile argument', profilePath: '' };
+  const s = (id, app, inst, extra) => Object.assign({ id, appName: app, appPath: 'C:\\Program Files\\Google\\Chrome\\Application\\' + app, instance: inst, state: 'running', isBusy: false,
+    pid: 2100 + inst, ramMb: 186, cpuPercent: 2.1, elapsed: '00:04:32', vaultPath: '%LOCALAPPDATA%\\MultiBox\\Vaults\\3f9a12c07b4e', hasSnapshot: false, fromSavedProfile: false,
+    error: null, profileCheck: check, savedProfileId: null, profileName: null, displayName: null, color: 'lime' }, extra);
+  w.onSessionsChanged({ revision: 9, selectedId: 'a', sessions: [
+    s('a', 'chrome.exe', 1, { displayName: 'Chrome · Work', fromSavedProfile: true, profileName: 'Work', savedProfileId: 'p1' }),
+    s('b', 'chrome.exe', 2, { color: 'cyan' }),
+    s('c', 'Discord.exe', 1, { color: 'violet', appPath: '%LOCALAPPDATA%\\Discord\\app-1.0.9180\\Discord.exe' })
+  ]});
+  w.updateTelemetry({ appName: 'Chrome · Work', elapsed: '00:04:32', ramMb: 186, cpuPercent: 2.1, pid: 2101, fromSavedProfile: true });
+  const saved = ([
+    { profileId: 'p1', profileName: 'Work', appName: 'chrome.exe', appPath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', savedAt: 'Oct 18, 2026 • 9:12 AM', sizeMb: 48.6 },
+    { profileId: 'p2', profileName: 'Client A', appName: 'Slack.exe', appPath: '%LOCALAPPDATA%\\slack\\slack.exe', savedAt: 'Oct 17, 2026 • 6:40 PM', sizeMb: 112.3 },
+    { profileId: 'p3', profileName: 'Personal', appName: 'Discord.exe', appPath: '%LOCALAPPDATA%\\Discord\\Discord.exe', savedAt: 'Oct 16, 2026 • 11:05 PM', sizeMb: 0.8 }
+  ]);
+  const processes = [
+    { pid: 8812, name: 'Slack', title: 'Slack | general | Acme', memMb: 412, hasWindow: true, exePath: '%LOCALAPPDATA%\\slack\\slack.exe' },
+    { pid: 6120, name: 'Telegram', title: 'Telegram', memMb: 188, hasWindow: true, exePath: 'C:\\Telegram Desktop\\Telegram.exe' },
+    { pid: 4410, name: 'Code', title: 'MultiBox - Visual Studio Code', memMb: 655, hasWindow: true, exePath: '%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe' },
+    { pid: 3302, name: 'Spotify', title: 'Spotify Premium', memMb: 241, hasWindow: true, exePath: '%APPDATA%\\Spotify\\Spotify.exe' }
+  ];
+  if (view === 'vault') { w.openVaultDrawer(); setTimeout(() => { w.onSaveBoxLoaded(saved); [...d.querySelectorAll('#saveBoxModal button')].find(b => /^\s*Saved/.test(b.textContent))?.click(); }, 400); }
+  if (view === 'tasks') { w.openTaskManager(); setTimeout(() => w.onProcessesLoaded(processes), 400); }
+  if (view === 'settings') { w.openSettings(); }
+}, 800));
+</script>
+</body></html>

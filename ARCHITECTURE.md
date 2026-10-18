@@ -106,7 +106,7 @@ Some apps collide with their first copy through resources that environment varia
 | **Fixed localhost service port.** | OpenCode Desktop (`opencode-cli serve --service`, port 45278) | Writes a free per-session port to `<Vault>\User\.config\opencode\service.json` (the file `opencode service set port` uses) and removes the stale service registration from restored profiles. |
 | | Cline (hub daemon, port 25463) | Sets `CLINE_HUB_PORT` to a free per-session port. Without it, the copy would attach to, or fail against, the host's hub. |
 | **Shared WebView2 data folder.** | WebView2 apps that never set a data folder (`<exe>.WebView2` next to the exe) | Sets `WEBVIEW2_USER_DATA_FOLDER` into the Vault. Apps that choose their own folder (Tauri's `EBWebView`) already follow the Vault and are left alone. |
-| **Packaged apps.** | Microsoft Store / MSIX (`WindowsApps`) | Refused with a clear message; packaged apps run in their own container. |
+| **Packaged apps.** | Microsoft Store desktop apps (`WindowsApps`), e.g. Codex, Claude | Started by path like any other app. If Windows denies the start, MultiBox explains that instead of showing "Access is denied". |
 
 Ports are chosen from a fixed range, stay stable per session while free, and are never handed to two sessions at once.
 
@@ -168,4 +168,3 @@ MultiBox separates **profiles**. It is not a security boundary.
 - **Folders not driven by environment variables**: `AppData\LocalLow` and the *Profile* known folder (Electron `app.getPath('home')`, Rust `dirs::home_dir`) point to your real profile.
 - **File and network access** are not restricted.
 - **Other single-instance methods**, such as named pipes, fixed ports in other apps or window-class checks, are handled only for the apps listed in section 3.
-- **Microsoft Store (MSIX) apps** are not supported.

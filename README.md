@@ -11,9 +11,10 @@ Separate logins, cookies and settings for every copy. Save the copies you want t
 [![Download](https://img.shields.io/github/v/release/uranrog-01/MultiBox?label=Download&color=d97706&style=for-the-badge)](https://github.com/uranrog-01/MultiBox/releases/latest)
 [![Website](https://img.shields.io/badge/Website-MultiBox-1a140e?style=for-the-badge)](https://uranrog-01.github.io/MultiBox/)
 [![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078d4?style=for-the-badge)](#requirements)
+[![Build](https://img.shields.io/github/actions/workflow/status/uranrog-01/MultiBox/build.yml?branch=main&label=Build&style=for-the-badge)](https://github.com/uranrog-01/MultiBox/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-<img src="docs/assets/intro-preview.gif" width="760" alt="MultiBox in action" />
+<img src="docs/assets/social-preview.png" width="760" alt="MultiBox: run the same Windows app many times, each with its own profile" />
 
 </div>
 
@@ -27,6 +28,7 @@ Separate logins, cookies and settings for every copy. Save the copies you want t
 - [FAQ & troubleshooting](#faq--troubleshooting)
 - [Build from source](#build-from-source)
 - [How it works](#how-it-works)
+- [Contributing & support](#contributing--support)
 - [License](#license)
 
 ## What it does
@@ -45,7 +47,7 @@ MultiBox needs no admin rights, drivers or virtual machine. It is portable: one 
 
 ## Quick start
 
-1. Download **`MultiBox-v1.0.3-win-x64.zip`** from [Releases](https://github.com/uranrog-01/MultiBox/releases/latest).
+1. Download the latest **`MultiBox-v…-win-x64.zip`** from [Releases](https://github.com/uranrog-01/MultiBox/releases/latest).
 2. Extract it anywhere and run **`MultiBox.exe`**.
 3. Drag an app's `.exe` or shortcut onto MultiBox, then click **Another copy** for each extra copy.
 
@@ -69,11 +71,11 @@ Closing or minimizing MultiBox sends it to the system tray. Click the tray icon 
 
 ### Screenshots
 
-| Main window | Vault |
+| Main window | Saved profiles |
 | :---: | :---: |
-| <img src="docs/screenshots/dashboard.png" width="380" alt="Main window" /> | <img src="docs/screenshots/vault.png" width="380" alt="Vault panel" /> |
-| **Saved profiles** | **Tasks** |
-| <img src="docs/screenshots/savebox.png" width="380" alt="Saved profiles" /> | <img src="docs/screenshots/tasks.png" width="380" alt="Tasks panel" /> |
+| <img src="docs/screenshots/dashboard.png" width="380" alt="Main window with three sessions" /> | <img src="docs/screenshots/savebox.png" width="380" alt="Vault: saved profiles with date and size" /> |
+| **Tasks** | **Settings** |
+| <img src="docs/screenshots/tasks.png" width="380" alt="Tasks: start a separate copy of a running program" /> | <img src="docs/screenshots/settings.png" width="380" alt="Settings" /> |
 
 ## Compatibility
 
@@ -86,7 +88,7 @@ Closing or minimizing MultiBox sends it to the system tray. Click the tray icon 
 | Node.js & Bun | Bundled CLIs and background services | ✅ Own home, temp and XDG folders per copy. OpenCode and Cline get their own service ports. |
 | Firefox & Thunderbird | Mozilla apps | ✅ Own `-profile` with `-no-remote` |
 | Classic Win32 apps | 32-bit and 64-bit | ⚠️ Works when the app stores data in AppData. Registry settings are shared. |
-| Microsoft Store apps | MSIX / `WindowsApps` | ❌ Not supported. Install the app's regular `.exe` version instead. |
+| Microsoft Store desktop apps | Codex (ChatGPT), Claude | ✅ Start from their `WindowsApps` folder like any other app |
 
 ## What is not separated
 
@@ -116,7 +118,7 @@ Some apps allow only one running copy and send new launches to the open window. 
 <details>
 <summary><b>OpenCode shows "Managed service port 45278 is already in use".</b></summary>
 
-OpenCode Desktop runs a background service on a fixed port, so a second copy collided with the first. Builds after v1.0.3 give every copy its own port. Update to the latest release.
+OpenCode Desktop runs a background service on a fixed port, so a second copy collided with the first. MultiBox 1.0.4 and later give every copy its own port. Update to the latest release.
 </details>
 
 <details>
@@ -161,6 +163,13 @@ dotnet run --project tests/SessionTests -c Release -- tests/SessionFixture/bin/R
 Each session starts the app suspended inside its own Windows **Job Object**, so every child process belongs to that session. The app's environment points `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `TEMP` and the XDG folders at the session's Vault folder. Chromium, Electron and Firefox also get explicit profile flags. **SaveBox** copies SQLite databases with the online backup API and skips caches and lock files.
 
 Read the full [architecture guide](ARCHITECTURE.md).
+
+## Contributing & support
+
+- **An app doesn't work?** Use the [app compatibility form](https://github.com/uranrog-01/MultiBox/issues/new?template=app_compatibility.yml).
+- **Found a bug or have an idea?** [Open an issue](https://github.com/uranrog-01/MultiBox/issues/new/choose).
+- **Security problem?** Please report it privately: see [SECURITY.md](SECURITY.md).
+- **Want to help?** See [CONTRIBUTING.md](CONTRIBUTING.md). What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

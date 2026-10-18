@@ -6,6 +6,15 @@
 <title>MultiBox: run Windows apps many times, each with its own profile</title>
 <meta name="description" content="MultiBox opens each copy of a Windows app in its own session, with separate logins, cookies and settings. Save profiles, wipe sessions, no admin rights needed.">
 <meta name="author" content="zer0ne">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MultiBox: run Windows apps many times, each with its own profile">
+<meta property="og:description" content="Separate logins, cookies and settings for every copy of a Windows app. Save profiles, wipe sessions, no admin rights needed.">
+<meta property="og:url" content="https://uranrog-01.github.io/MultiBox/">
+<meta property="og:image" content="https://uranrog-01.github.io/MultiBox/assets/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#c6fa46">
 <link rel="icon" type="image/png" href="assets/icon.png">
 
 <style>
@@ -434,7 +443,7 @@
     flex-wrap: wrap; gap: 20px; font-size: 13px; color: var(--text-muted);
   }
   .footer-links {
-    display: flex; gap: 20px; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 12px 20px; list-style: none;
   }
   .footer-links a {
     color: var(--text-secondary); text-decoration: none; font-weight: 600;
@@ -637,7 +646,7 @@
           <li class="step-card" data-shadow="8">
             <span class="step-num">1</span>
             <h3>Download and start</h3>
-            <p>Download <code>MultiBox-v1.0.3-win-x64.zip</code> from <a href="https://github.com/uranrog-01/MultiBox/releases/latest">Releases</a>, extract it to any folder and run <code>MultiBox.exe</code>. Nothing is installed.</p>
+            <p>Download the latest <code>MultiBox-v…-win-x64.zip</code> from <a href="https://github.com/uranrog-01/MultiBox/releases/latest">Releases</a>, extract it to any folder and run <code>MultiBox.exe</code>. Nothing is installed.</p>
             <p class="note">Windows may show a SmartScreen warning the first time. Click <b>More info → Run anyway</b>. <a href="#faq-smartscreen">Why?</a></p>
           </li>
           <li class="step-card" data-shadow="8">
@@ -719,32 +728,20 @@
             <div class="showcase-img-wrap"><img src="screenshots/dashboard.png" alt="Main window with session switcher" loading="lazy"></div>
             <div class="showcase-caption"><h4>Main window</h4><p>Open copies of an app and switch between sessions at the top.</p></div>
           </button>
-          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/vault.png', 'Vault: running sessions')">
-            <div class="showcase-img-wrap"><img src="screenshots/vault.png" alt="Vault panel listing sessions" loading="lazy"></div>
-            <div class="showcase-caption"><h4>Vault</h4><p>Each session's storage, with Save and Wipe actions.</p></div>
-          </button>
-          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/savebox.png', 'Saved profiles')">
-            <div class="showcase-img-wrap"><img src="screenshots/savebox.png" alt="Saved profiles library" loading="lazy"></div>
-            <div class="showcase-caption"><h4>Saved profiles</h4><p>Named profiles you can open again at any time.</p></div>
+          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/savebox.png', 'Vault: saved profiles')">
+            <div class="showcase-img-wrap"><img src="screenshots/savebox.png" alt="Vault with saved profiles, their dates and sizes" loading="lazy"></div>
+            <div class="showcase-caption"><h4>Saved profiles</h4><p>Named profiles with their date and size. Open one again at any time.</p></div>
           </button>
           <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/tasks.png', 'Tasks')">
             <div class="showcase-img-wrap"><img src="screenshots/tasks.png" alt="Tasks panel with running programs" loading="lazy"></div>
             <div class="showcase-caption"><h4>Tasks</h4><p>Running programs, memory use and Isolate &amp; Run.</p></div>
           </button>
+          <button type="button" class="showcase-item" data-shadow="10" onclick="openLightbox('screenshots/settings.png', 'Settings')">
+            <div class="showcase-img-wrap"><img src="screenshots/settings.png" alt="Settings panel" loading="lazy"></div>
+            <div class="showcase-caption"><h4>Settings</h4><p>Window labels, right-click launch and cleanup options.</p></div>
+          </button>
         </div>
 
-        <div class="video-container" data-shadow="12" style="margin-top: 40px;">
-          <div class="video-player-wrap">
-            <video controls poster="assets/intro-preview.gif" preload="none">
-              <source src="assets/MultiBox-Intro-10s.mp4" type="video/mp4">
-              Your browser does not support HTML5 video.
-            </video>
-          </div>
-          <div class="video-caption-bar">
-            <div class="video-caption-text"><h4>10-second intro</h4><p>1080p · with sound</p></div>
-            <div class="video-badges"><a href="assets/MultiBox-Intro-10s.mp4" download class="btn btn-ghost btn-sm">Download MP4</a></div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -766,7 +763,7 @@
               <tr><td class="comp-feat">Node.js &amp; Bun</td><td>Bundled CLIs and background services</td><td class="comp-good">✅ Home, temp and XDG folders per copy; OpenCode and Cline get their own service ports</td></tr>
               <tr><td class="comp-feat">Firefox &amp; Thunderbird</td><td>Mozilla apps</td><td class="comp-good">✅ Own <code>-profile</code>, <code>-no-remote</code></td></tr>
               <tr><td class="comp-feat">Classic Win32 apps</td><td>32-bit and 64-bit</td><td class="comp-warn">⚠️ Works if the app stores data in AppData; registry settings are shared</td></tr>
-              <tr><td class="comp-feat">Microsoft Store apps</td><td>MSIX / WindowsApps</td><td class="comp-bad">❌ Not supported: use the app's regular .exe installer</td></tr>
+              <tr><td class="comp-feat">Microsoft Store desktop apps</td><td>Codex (ChatGPT), Claude</td><td class="comp-good">✅ Start from their WindowsApps folder like any other app</td></tr>
             </tbody>
           </table>
         </div>
@@ -795,7 +792,7 @@
           <details><summary>An app opened my existing window instead of a new copy.</summary>
             <p>Some apps allow only one running copy and pass new launches to the open window. MultiBox handles the common methods: the Electron and Chromium profile lock, and Tauri's single-instance lock. If an app still does this, please <a href="https://github.com/uranrog-01/MultiBox/issues">open an issue</a> with the app's name and version.</p></details>
           <details><summary>OpenCode says "Managed service port 45278 is already in use".</summary>
-            <p>OpenCode Desktop starts a background service on a fixed port, so a second copy collided with the first. Builds after v1.0.3 give every copy its own service port automatically. Update to the latest release.</p></details>
+            <p>OpenCode Desktop starts a background service on a fixed port, so a second copy collided with the first. MultiBox 1.0.4 and later give every copy its own service port automatically. Update to the latest release.</p></details>
           <details><summary>Does Save interrupt my app?</summary>
             <p>Yes, briefly. To make a consistent copy, Save asks the app to close, copies its data, then reopens it in the same session. If the app has unsaved work or an open dialog, Save waits and nothing is lost.</p></details>
           <details><summary>Where are my files stored?</summary>
@@ -850,7 +847,7 @@
       </div>
       <ul class="footer-links">
         <li><a href="https://github.com/uranrog-01/MultiBox/releases" target="_blank" rel="noopener">Releases</a></li>
-        <li><a href="https://github.com/uranrog-01/MultiBox/issues" target="_blank" rel="noopener">Issues</a></li>
+        <li><a href="https://github.com/uranrog-01/MultiBox/issues" target="_blank" rel="noopener">Issues</a></li><li><a href="https://github.com/uranrog-01/MultiBox/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li><li><a href="https://github.com/uranrog-01/MultiBox/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a></li>
         <li><a href="https://github.com/uranrog-01/MultiBox/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture</a></li>
         <li><a href="#hero">↑ Top</a></li>
       </ul>

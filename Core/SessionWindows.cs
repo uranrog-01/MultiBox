@@ -13,7 +13,10 @@ internal static class SessionWindows
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
     [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
 
+    [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
     [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
+    private const uint WmClose = 0x0010;
     private const int GwlExStyle = -20;
     private const long WsExToolWindow = 0x00000080;
     private const int DwmwaCloaked = 14;
@@ -31,6 +34,24 @@ internal static class SessionWindows
         }, IntPtr.Zero);
         if (!completed && !found) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Could not inspect this app's windows safely.");
         return found;
+    }
+
+    /// <summary>
+    /// Asks every user-facing window of the session to close, the same as clicking its X.
+    /// Process.CloseMainWindow can pick a hidden helper window instead of the real one (Tauri/Tao apps),
+    /// so the real window would never be asked. Returns how many windows were asked.
+    /// </summary>
+    public static int RequestClose(IEnumerable<int> processIds)
+    {
+        var ids = processIds.ToHashSet();
+        var windows = new List<IntPtr>();
+        EnumWindows((window, _) => {
+            GetWindowThreadProcessId(window, out uint pid);
+            if (ids.Contains((int)pid) && IsUserWindow(window)) windows.Add(window);
+            return true;
+        }, IntPtr.Zero);
+        foreach (IntPtr window in windows) PostMessage(window, WmClose, IntPtr.Zero, IntPtr.Zero);
+        return windows.Count;
     }
 
     // Frameworks such as Tauri/Tao keep tiny "visible" helper windows (event targets,

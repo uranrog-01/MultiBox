@@ -288,7 +288,8 @@ namespace MultiBox
             string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "icon.ico");
             if (File.Exists(iconPath))
             {
-                try { _trayIcon.Icon = new Icon(iconPath); }
+                // Ask for the tray's exact size (16/20/24 px by display scale) so Windows never shrinks the 32 px frame.
+                try { _trayIcon.Icon = new Icon(iconPath, SystemInformation.SmallIconSize); }
                 catch { _trayIcon.Icon = this.Icon ?? SystemIcons.Application; }
             }
             else

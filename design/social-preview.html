@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- Source for docs/assets/social-preview.png (1280x640). Render: see design/icon/build-icon.py's chromium call. -->
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
+  body { font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; color: #eef5e6;
+    background: radial-gradient(ellipse 70% 90% at 18% 50%, #c6fa4626, transparent 60%), radial-gradient(ellipse 50% 60% at 95% 0%, #00b4ff14, transparent 60%), #0a0e0b; }
+  .grid { position: absolute; inset: 0; background-image: linear-gradient(#ffffff08 1px, transparent 1px), linear-gradient(90deg, #ffffff08 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse at 30% 50%, #000 20%, transparent 75%); }
+  .wrap { position: absolute; inset: 0; display: flex; align-items: center; gap: 72px; padding: 0 96px; }
+  .icon { width: 300px; height: 300px; flex-shrink: 0; filter: drop-shadow(0 24px 60px #c6fa4640); }
+  h1 { margin: 0 0 18px; font-size: 92px; font-weight: 700; letter-spacing: -3px; line-height: 1; }
+  p { margin: 0 0 34px; font-size: 34px; line-height: 1.35; color: #c9d6bf; max-width: 760px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 12px; }
+  .chip { font-size: 21px; padding: 9px 18px; border-radius: 999px; border: 1px solid #c6fa4640; background: #c6fa4612; color: #dff7a8; }
+  .foot { position: absolute; left: 96px; right: 96px; bottom: 40px; display: flex; justify-content: space-between; font-size: 20px; color: #8fa086; }
+</style></head><body>
+<div class="grid"></div>
+<div class="wrap">
+  <img class="icon" src="icon/multibox-icon.svg" alt="">
+  <div>
+    <h1>MultiBox</h1>
+    <p>Run the same Windows app many times, each with its own profile.</p>
+    <div class="chips"><span class="chip">Separate logins</span><span class="chip">Save &amp; reopen</span><span class="chip">One-click wipe</span><span class="chip">No admin</span></div>
+  </div>
+</div>
+<div class="foot"><span>Electron · Tauri · WebView2 · Node.js · Bun</span><span>Free &amp; open source · Windows 10 &amp; 11</span></div>
+</body></html>

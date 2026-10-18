@@ -46,8 +46,7 @@ internal static class AppCompatibility
         if (Directory.Exists(sharedWebView))
             startInfo.Environment["WEBVIEW2_USER_DATA_FOLDER"] = Path.Combine(vault.LocalAppData, Path.GetFileName(targetExe) + ".WebView2");
 
-        // Tauri and similar apps forward to an already running copy when their named mutex exists.
-        Try(() => SingleInstanceLocks.Release(targetExe));
+        // Single-instance locks (Tauri and similar) are handled around the actual start by SingleInstanceLocks.
     }
 
     /// <summary>
@@ -128,31 +127,154 @@ internal static class AppCompatibility
 }
 
 /// <summary>
-/// Closes single-instance mutexes held by other running copies of the same executable so a vault copy
-/// starts as its own instance instead of handing its arguments to the existing window and exiting.
-/// Only mutexes whose names follow known single-instance conventions are touched.
+/// Keeps isolated copies and normal (non-MultiBox) copies of the same app from capturing each other's launches.
+///
+/// Tauri's single-instance plugin, the common case, works like this: CreateMutex("&lt;id&gt;-sim"); if it already
+/// existed, FindWindow("&lt;id&gt;-sic", "&lt;id&gt;-siw"), send the new launch to that window and exit. So:
+///  * Before an isolated launch, the matching windows of other running copies are renamed for a moment, so the
+///    new copy finds nothing and starts on its own. Their mutexes are left alone and keep working as before.
+///  * After the launch, the session's own single-instance mutexes are closed and its windows renamed for good,
+///    so starting the app normally from Windows is never redirected into the isolated copy.
+/// Mutexes with other single-instance names (no Tauri window) are closed in the other copies, as there is no
+/// window to hide. Only processes running the identical executable path are touched.
 /// </summary>
 internal static class SingleInstanceLocks
 {
-    public static int Release(string targetExe)
+    private const string HeldSuffix = " (MultiBox: starting isolated copy)";
+    private static readonly TimeSpan WatchFor = TimeSpan.FromSeconds(20);
+
+    /// <summary>Windows of other copies renamed while an isolated copy starts.</summary>
+    internal sealed class HeldWindows
     {
-        string fullPath = Path.GetFullPath(targetExe);
-        var targets = new Dictionary<int, IntPtr>();
-        int released = 0;
-        try
+        private readonly List<(IntPtr Window, string Title)> _windows = [];
+        private int _restored;
+        internal void Add(IntPtr window, string title) => _windows.Add((window, title));
+        internal int Count => _windows.Count;
+        public void Restore()
         {
-            foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(fullPath)))
+            if (Interlocked.Exchange(ref _restored, 1) != 0) return;
+            foreach (var (window, title) in _windows) SetTitle(window, title);
+        }
+    }
+
+    /// <summary>Call right before starting an isolated copy.</summary>
+    public static HeldWindows PrepareLaunch(string targetExe)
+    {
+        var held = new HeldWindows();
+        var others = OtherCopies(targetExe);
+        if (others.Count == 0) return held;
+        foreach (var window in TauriWindows(others))
+        {
+            string title = GetTitle(window);
+            if (title.EndsWith(HeldSuffix, StringComparison.Ordinal)) continue;
+            if (SetTitle(window, title + HeldSuffix)) held.Add(window, title);
+        }
+        // Tauri mutexes stay: their window is hidden instead. Other single-instance mutexes have no window to hide.
+        CloseMutexes(others, name => IsSingleInstanceName(name) && !IsTauriMutex(name));
+        return held;
+    }
+
+    /// <summary>Call right after the isolated copy started. Runs in the background and never throws.</summary>
+    public static void WatchSession(Func<int[]> sessionProcessIds, HeldWindows held, string sessionId)
+    {
+        _ = Task.Run(async () =>
+        {
+            var started = Stopwatch.StartNew();
+            try
             {
-                using (process)
+                while (started.Elapsed < WatchFor)
                 {
-                    if (process.Id == Environment.ProcessId) continue;
-                    IntPtr handle = OpenProcess(ProcessDupHandle | ProcessQueryLimitedInformation, false, process.Id);
-                    if (handle == IntPtr.Zero) continue;
-                    if (string.Equals(ImagePath(handle), fullPath, StringComparison.OrdinalIgnoreCase)) targets[process.Id] = handle;
-                    else CloseHandle(handle);
+                    await Task.Delay(started.Elapsed < TimeSpan.FromSeconds(5) ? 250 : 1000);
+                    var ids = sessionProcessIds().ToHashSet();
+                    if (ids.Count == 0) break;
+                    int closed = CloseMutexes(ids, IsSingleInstanceName);
+                    foreach (var window in TauriWindows(ids))
+                    {
+                        string title = GetTitle(window);
+                        if (!title.Contains("(MultiBox session", StringComparison.Ordinal)) SetTitle(window, title + $" (MultiBox session {sessionId})");
+                    }
+                    // Once the copy has passed its own single-instance check, other copies get their windows back.
+                    if (closed > 0 || started.Elapsed > TimeSpan.FromSeconds(8) || SessionWindows.HasVisibleWindow(ids)) held.Restore();
                 }
             }
-            if (targets.Count == 0) return 0;
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or ObjectDisposedException or ArgumentException) { }
+            finally { held.Restore(); }
+        });
+    }
+
+    internal static bool IsTauriMutex(string objectName) => LastSegment(objectName).EndsWith("-sim", StringComparison.Ordinal) && LastSegment(objectName).Length > 4;
+
+    internal static bool IsSingleInstanceName(string objectName)
+    {
+        if (string.IsNullOrEmpty(objectName)) return false;
+        string name = LastSegment(objectName);
+        return IsTauriMutex(objectName) ||
+            name.Contains("singleinstance") || name.Contains("single-instance") || name.Contains("single_instance");
+    }
+
+    private static string LastSegment(string objectName) => objectName[(objectName.LastIndexOf('\\') + 1)..].ToLowerInvariant();
+
+    private static HashSet<int> OtherCopies(string targetExe)
+    {
+        // Compare long-form paths: a shortcut may use 8.3 names (ABCDEF~1), while Windows reports the long form.
+        string fullPath = LongPath(Path.GetFullPath(targetExe));
+        var ids = new HashSet<int>();
+        foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(fullPath)))
+        {
+            using (process)
+            {
+                if (process.Id == Environment.ProcessId) continue;
+                IntPtr handle = OpenProcess(ProcessQueryLimitedInformation, false, process.Id);
+                if (handle == IntPtr.Zero) continue;
+                try { if (ImagePath(handle) is string image && string.Equals(LongPath(image), fullPath, StringComparison.OrdinalIgnoreCase)) ids.Add(process.Id); }
+                finally { CloseHandle(handle); }
+            }
+        }
+        return ids;
+    }
+
+    /// <summary>Tauri single-instance windows: class "&lt;id&gt;-sic", title "&lt;id&gt;-siw…".</summary>
+    private static List<IntPtr> TauriWindows(HashSet<int> processIds)
+    {
+        var found = new List<IntPtr>();
+        EnumWindows((window, _) =>
+        {
+            GetWindowThreadProcessId(window, out uint pid);
+            if (!processIds.Contains((int)pid)) return true;
+            var className = new StringBuilder(256);
+            GetClassName(window, className, className.Capacity);
+            string cls = className.ToString();
+            if (cls.Length > 4 && cls.EndsWith("-sic", StringComparison.Ordinal) && GetTitle(window).StartsWith(cls[..^4] + "-siw", StringComparison.Ordinal))
+                found.Add(window);
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    private static string GetTitle(IntPtr window)
+    {
+        var text = new StringBuilder(512);
+        GetWindowText(window, text, text.Capacity);
+        return text.ToString();
+    }
+
+    // WM_SETTEXT with a timeout, so a hung app can't stall MultiBox.
+    private static bool SetTitle(IntPtr window, string title) =>
+        SendMessageTimeout(window, WmSetText, IntPtr.Zero, title, SmtoAbortIfHung, 1000, out _) != IntPtr.Zero;
+
+    /// <summary>Closes (or with close: false, only counts) matching named mutex handles inside the given processes.</summary>
+    internal static int CloseMutexes(HashSet<int> processIds, Func<string, bool> matches, bool close = true)
+    {
+        var owners = new Dictionary<int, IntPtr>();
+        int closed = 0;
+        try
+        {
+            foreach (int id in processIds)
+            {
+                IntPtr handle = OpenProcess(ProcessDupHandle | ProcessQueryLimitedInformation, false, id);
+                if (handle != IntPtr.Zero) owners[id] = handle;
+            }
+            if (owners.Count == 0) return 0;
 
             using var probe = new Mutex(false);
             byte[] table = HandleTable();
@@ -172,29 +294,28 @@ internal static class SingleInstanceLocks
             for (long i = 0; i < count; i++)
             {
                 var entry = MemoryMarshal.Read<HandleEntry>(table.AsSpan(offset + (int)i * entrySize, entrySize));
-                if (entry.ObjectTypeIndex != mutantType || !targets.TryGetValue((int)entry.UniqueProcessId, out IntPtr owner)) continue;
+                if (entry.ObjectTypeIndex != mutantType || !owners.TryGetValue((int)entry.UniqueProcessId, out IntPtr owner)) continue;
                 if (!DuplicateHandle(owner, entry.HandleValue, self, out IntPtr copy, 0, false, DuplicateSameAccess)) continue;
                 string name;
                 try { name = ObjectName(copy); }
                 finally { CloseHandle(copy); }
-                if (!IsSingleInstanceName(name)) continue;
-                if (DuplicateHandle(owner, entry.HandleValue, IntPtr.Zero, out _, 0, false, DuplicateCloseSource)) released++;
+                if (!matches(name)) continue;
+                if (!close) closed++;
+                else if (DuplicateHandle(owner, entry.HandleValue, IntPtr.Zero, out _, 0, false, DuplicateCloseSource)) closed++;
             }
-            return released;
+            return closed;
         }
         finally
         {
-            foreach (IntPtr handle in targets.Values) CloseHandle(handle);
+            foreach (IntPtr handle in owners.Values) CloseHandle(handle);
         }
     }
 
-    internal static bool IsSingleInstanceName(string objectName)
+    private static string LongPath(string path)
     {
-        if (string.IsNullOrEmpty(objectName)) return false;
-        string name = objectName[(objectName.LastIndexOf('\\') + 1)..].ToLowerInvariant();
-        // Tauri's single-instance plugin: "<identifier>-sim" (window class "-sic", window "-siw").
-        return name.EndsWith("-sim", StringComparison.Ordinal) && name.Length > 4 ||
-            name.Contains("singleinstance") || name.Contains("single-instance") || name.Contains("single_instance");
+        var buffer = new StringBuilder(1024);
+        uint length = GetLongPathNameW(path, buffer, (uint)buffer.Capacity);
+        return length > 0 && length < buffer.Capacity ? buffer.ToString() : path;
     }
 
     private static string? ImagePath(IntPtr process)
@@ -246,6 +367,7 @@ internal static class SingleInstanceLocks
         public uint Reserved;
     }
 
+    private delegate bool EnumWindowProc(IntPtr window, IntPtr data);
     private const int SystemExtendedHandleInformation = 64;
     private const int ObjectNameInformation = 1;
     private const int StatusInfoLengthMismatch = unchecked((int)0xC0000004);
@@ -253,6 +375,8 @@ internal static class SingleInstanceLocks
     private const uint ProcessQueryLimitedInformation = 0x1000;
     private const uint DuplicateCloseSource = 0x1;
     private const uint DuplicateSameAccess = 0x2;
+    private const uint WmSetText = 0x000C;
+    private const uint SmtoAbortIfHung = 0x0002;
 
     [DllImport("ntdll.dll")] private static extern int NtQuerySystemInformation(int infoClass, byte[] info, int length, out int returnLength);
     [DllImport("ntdll.dll")] private static extern int NtQueryObject(IntPtr handle, int infoClass, IntPtr info, int length, out int returnLength);
@@ -264,4 +388,11 @@ internal static class SingleInstanceLocks
     private static extern bool DuplicateHandle(IntPtr sourceProcess, IntPtr sourceHandle, IntPtr targetProcess, out IntPtr targetHandle, uint access, bool inherit, uint options);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern uint GetLongPathNameW(string shortPath, StringBuilder longPath, uint size);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool EnumWindows(EnumWindowProc callback, IntPtr data);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int max);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder text, int max);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr wParam, string lParam, uint flags, uint timeout, out IntPtr result);
 }

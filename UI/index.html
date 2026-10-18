@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MultiBox - Ephemeral Isolation</title>
+  <title>MultiBox</title>
   <style>
     html {
       background: transparent !important;
-      overflow: hidden;
+      overflow: clip;
     }
 
     :root {
@@ -42,7 +42,9 @@
       font-family: var(--font-family);
       width: 100vw;
       height: 100vh;
-      overflow: hidden;
+      /* clip, not hidden: closed panels wait off-screen to the right, and with "hidden" focusing a
+         control inside a panel that is still sliding in scrolled the whole window sideways. */
+      overflow: clip;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -1350,7 +1352,7 @@
       </div>
       <div class="hud-tele-col">
         <span class="hud-tele-label">PROFILE</span>
-        <span class="hud-tele-val" id="hudModeText" style="color:var(--accent-green);">EPHEMERAL</span>
+        <span class="hud-tele-val" id="hudModeText" style="color:var(--accent-green);">TEMPORARY</span>
       </div>
     </div>
   </div>
@@ -1454,7 +1456,7 @@
         <div class="settings-switch-row">
           <div>
             <h3 class="settings-card-title" id="shortcutHeading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 3 14 9-7 1-3 7zM14 16l3 4"/></svg><label for="contextMenuToggle">Right-click launch</label></h3>
-            <p class="settings-help settings-shortcut-hint" id="contextMenuHelp">From File Explorer</p>
+            <p class="settings-help settings-shortcut-hint" id="contextMenuHelp">Adds “Run in Isolated Mode” when you right-click an app in File Explorer</p>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="contextMenuToggle" aria-labelledby="shortcutHeading" aria-describedby="contextMenuHelp" onchange="toggleContextMenu(this.checked)">
@@ -1481,11 +1483,13 @@
             <h3 class="settings-card-title" id="deleteDataHeading">Delete app data</h3>
             <button class="action-btn" type="button" onclick="window.MultiBoxSessions?.requestEndAll()">Clear temporary sessions…</button>
             <p class="settings-help">Closes apps and clears files. Saved profiles stay.</p>
+            <!-- Deletes saved profiles too, so it lives in this folded section next to the safer option, not on the main settings view. -->
+            <button class="action-btn danger settings-delete-all" type="button" onclick="openPurgeConfirmModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>Delete sessions &amp; saved profiles…</button>
+            <p class="settings-help">Also deletes every saved profile. You'll be asked to confirm.</p>
           </section>
           <button class="settings-exit" type="button" onclick="window.chrome_backend?.exitApplication()">Quit MultiBox</button>
         </div>
       </details>
-      <button class="action-btn danger settings-delete-all" type="button" onclick="openPurgeConfirmModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>Delete sessions &amp; saved profiles…</button>
       <footer class="settings-about">
         <span>MultiBox <span class="settings-version">1.0.4</span></span>
         <button type="button" class="settings-about-btn" id="openAboutBtn" onclick="openAboutModal()" title="About MultiBox &amp; Creator">
@@ -2322,7 +2326,7 @@
         if (hudStatusDot) hudStatusDot.className = "hud-status-dot";
         if (timerText) timerText.innerText = "00:00:00";
         if (hudModeText) {
-          hudModeText.innerText = "EPHEMERAL";
+          hudModeText.innerText = "TEMPORARY";
           hudModeText.style.color = "#64748b";
         }
         metricsContainer?.classList.remove('active');
