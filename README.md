@@ -1,10 +1,16 @@
 <div align="center">
 
 <a href="https://github.com/uranrog-01">
-  <img src="docs/assets/zer0ne-banner.png" alt="zer0ne - Project Creator & Author" width="850" style="border-radius: 12px; margin-bottom: 20px;" />
+  <img src="docs/assets/zer0ne-banner.png" alt="zer0ne - Project Creator & Author" width="850" style="border-radius: 12px; margin-bottom: 24px;" />
 </a>
 
-# MultiBox 🛡️
+<p align="center">
+  <a href="https://github.com/uranrog-01/MultiBox">
+    <img src="docs/assets/icon.png" width="96" height="96" alt="MultiBox Logo" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+  </a>
+</p>
+
+# MultiBox
 
 ### **Run any Windows app multiple times concurrently — 100% isolated.**
 
