@@ -454,11 +454,12 @@
   .lit-hint {
     position: absolute; left: 50%; top: 86%;
     transform: translateX(-50%);
-    z-index: 20; pointer-events: none;
+    z-index: 20; pointer-events: auto; cursor: pointer;
     font-family: var(--font-mono);
     font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
     color: rgba(255, 230, 190, 0.85);
     white-space: nowrap;
+    user-select: none;
     animation: hintpulse 2.4s ease-in-out infinite;
     transition: opacity 0.45s ease;
   }
@@ -563,7 +564,7 @@
   }
 </style>
 </head>
-<body class="lit">
+<body>
 
 <!-- Fixed Stage: Background & WebGL Edison Canvas Engine -->
 <div id="stage">
@@ -571,7 +572,7 @@
   <!-- Floating Lamp Switch Pill (Always accessible) -->
   <button class="lamp-switch-pill" id="lampToggleBtn" title="Toggle Edison Bulb (or press 'L')">
     <span class="lamp-status-dot"></span>
-    <span id="lampBtnText">Turn Light OFF [L]</span>
+    <span id="lampBtnText">Turn Light ON [L]</span>
   </button>
 
   <!-- Scrollable Site Content Container (Underneath engine canvases) -->
@@ -870,7 +871,7 @@
   </div>
 
   <!-- Direct child of #stage so it stays readable while light is OFF -->
-  <div class="lit-hint">Click the bulb or press L to turn the light back on</div>
+  <div class="lit-hint">Click the bulb, pull the cord, or press L to turn the light on</div>
 
 </div>
 
@@ -922,7 +923,7 @@ document.addEventListener('keydown', function(e) {
     var ON_STATE  = { x: 0.88, y: 0.24, size: 0.13, dark: 0.86, reach: 1.8, pool: 1.25, falloff: 1.05 };
 
     var values = Object.assign({}, schema.EDISON_DEFAULTS, OFF_STATE, {
-      on: true,
+      on: false,
       mode: "room",
       level: 1,
       controls: false
@@ -953,7 +954,7 @@ document.addEventListener('keydown', function(e) {
     var stage = document.getElementById("stage");
     var tpl = document.getElementById("tpl");
     var inst = null;
-    var lastOn = true;
+    var lastOn = false;
     var tweenToken = 0;
     var lampToggleBtn = document.getElementById("lampToggleBtn");
     var lampBtnText = document.getElementById("lampBtnText");
@@ -1001,6 +1002,14 @@ document.addEventListener('keydown', function(e) {
     // Lamp switch button event
     if (lampToggleBtn) {
       lampToggleBtn.addEventListener("click", function() {
+        inst.toggle();
+      });
+    }
+
+    // Direct click on lit-hint to toggle light
+    var litHint = document.querySelector(".lit-hint");
+    if (litHint) {
+      litHint.addEventListener("click", function() {
         inst.toggle();
       });
     }
