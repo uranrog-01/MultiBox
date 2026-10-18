@@ -52,3 +52,7 @@ design/live-save-candidate/
 node_modules/
 *.log
 design/*.log
+
+# Local website templates
+edison-template/
+
