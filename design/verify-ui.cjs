@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { chromium } = require('C:/Users/zer0ne_LP_Local/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { chromium } = require('playwright');
 
 (async () => {
   const cache = path.join(process.env.LOCALAPPDATA, 'ms-playwright');

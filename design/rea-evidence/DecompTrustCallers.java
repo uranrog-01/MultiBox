@@ -10,7 +10,7 @@ import java.util.*;
 public class DecompTrustCallers extends GhidraScript {
     @Override
     public void run() throws Exception {
-        String outDir = "C:/Users/zer0ne_LP_Local/Desktop/MultiBox/design/rea-evidence";
+        String outDir = "./design/rea-evidence";
         new File(outDir).mkdirs();
         String binName = currentProgram.getName();
         String[] args = getScriptArgs();
@@ -157,7 +157,7 @@ public class DecompTrustCallers extends GhidraScript {
 
     private void dumpDecomp(String binName, DecompInterface di, Collection<Function> funcs, String tag)
             throws IOException {
-        String outDir = "C:/Users/zer0ne_LP_Local/Desktop/MultiBox/design/rea-evidence";
+        String outDir = "./design/rea-evidence";
         for (Function f : funcs) {
             DecompileResults r = di.decompileFunction(f, 60, monitor);
             if (r.decompileCompleted()) {

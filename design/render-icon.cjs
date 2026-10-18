@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { chromium } = require('C:/Users/zer0ne_LP_Local/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { chromium } = require('playwright');
 (async () => {
   const cache = path.join(process.env.LOCALAPPDATA, 'ms-playwright');
   const revision = fs.readdirSync(cache).filter(name => name.startsWith('chromium_headless_shell-')).sort().at(-1);
