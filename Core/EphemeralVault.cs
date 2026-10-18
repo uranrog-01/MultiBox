@@ -15,6 +15,7 @@ namespace MultiBox.Core
         public string LocalLowAppData { get; }
         public string TempDir { get; }
         public string UserDataDir { get; }
+        public bool IsPersistent { get; }
 
         private bool _isWiped;
         private readonly string _basePath;
@@ -25,6 +26,7 @@ namespace MultiBox.Core
             VaultId = Guid.NewGuid().ToString("N")[..12];
             _basePath = Path.GetFullPath(vaultsRoot ?? VaultRecovery.DefaultRoot);
             RootPath = Path.Combine(_basePath, VaultId);
+            IsPersistent = false;
             Directory.CreateDirectory(RootPath);
             _lease = new FileStream(Path.Combine(RootPath, VaultRecovery.LeaseFile), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
             using var ownerProcess = Process.GetCurrentProcess();
@@ -40,6 +42,34 @@ namespace MultiBox.Core
             UserDataDir = Path.Combine(LocalAppData, "UserData");
 
             Provision();
+        }
+
+        public EphemeralVault(string profileId, string dataPath)
+        {
+            VaultId = profileId;
+            _basePath = Path.GetDirectoryName(dataPath) ?? dataPath;
+            RootPath = Path.GetFullPath(dataPath);
+            IsPersistent = true;
+            Directory.CreateDirectory(RootPath);
+
+            // Mirror standard Windows Profile layout inside the persistent profile vault
+            UserProfile = Path.Combine(RootPath, "User");
+            RoamingAppData = Path.Combine(UserProfile, "AppData", "Roaming");
+            LocalAppData = Path.Combine(UserProfile, "AppData", "Local");
+            LocalLowAppData = Path.Combine(UserProfile, "AppData", "LocalLow");
+            TempDir = Path.Combine(LocalAppData, "Temp");
+            UserDataDir = Path.Combine(LocalAppData, "UserData");
+
+            Provision();
+
+            try
+            {
+                _lease = new FileStream(Path.Combine(RootPath, VaultRecovery.LeaseFile), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+                using var ownerProcess = Process.GetCurrentProcess();
+                var owner = new VaultOwner(1, VaultId, Environment.ProcessId, ownerProcess.StartTime.ToUniversalTime().Ticks);
+                File.WriteAllText(Path.Combine(RootPath, VaultRecovery.OwnerFile), System.Text.Json.JsonSerializer.Serialize(owner));
+            }
+            catch { }
         }
 
         private void Provision()
@@ -69,12 +99,16 @@ namespace MultiBox.Core
         public bool ScrubAndWipe()
         {
             if (_isWiped) return true;
-            string basePath = _basePath;
-            string target = Path.GetFullPath(RootPath);
-            if (!string.Equals(Path.GetDirectoryName(target), basePath, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Refusing to wipe outside the session vault root.");
             _lease?.Dispose();
             _lease = null;
+            if (IsPersistent)
+            {
+                // Persistent profiles retain all files and user edits permanently
+                _isWiped = true;
+                return true;
+            }
+            string basePath = _basePath;
+            string target = Path.GetFullPath(RootPath);
             for (int attempt = 0; attempt < 8; attempt++)
             {
                 try

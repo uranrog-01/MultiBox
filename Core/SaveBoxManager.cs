@@ -14,6 +14,8 @@ public class SaveBoxSnapshot
     public double SizeMb { get; set; }
     public string FolderPath { get; set; } = string.Empty;
     public string[] RegeneratedBrowserMetadata { get; set; } = [];
+    public string? OriginalVaultId { get; set; }
+    public string? OriginalVaultPath { get; set; }
 }
 
 public static class SaveBoxManager
@@ -104,7 +106,7 @@ public static class SaveBoxManager
     }
     public static SaveBoxSnapshot? GetProfile(string? profileId) => profileId == null ? null : ListSnapshots().FirstOrDefault(p => p.ProfileId == profileId);
     public static bool HasSnapshot(string appName) => ListSnapshots().Any(p => p.AppName.Equals(appName, StringComparison.OrdinalIgnoreCase));
-    private static SaveBoxSnapshot? DefaultProfile(string appName) => ListSnapshots().FirstOrDefault(p => p.AppName.Equals(appName, StringComparison.OrdinalIgnoreCase) && p.ProfileName.Equals("Default", StringComparison.OrdinalIgnoreCase));
+    internal static SaveBoxSnapshot? DefaultProfile(string appName) => ListSnapshots().FirstOrDefault(p => p.AppName.Equals(appName, StringComparison.OrdinalIgnoreCase) && p.ProfileName.Equals("Default", StringComparison.OrdinalIgnoreCase));
     public static bool SaveSnapshot(string appName, string appPath, string vault, out string error)
         => SaveProfile(appName, appPath, vault, "Default", DefaultProfile(appName)?.ProfileId, out error);
     public static bool RestoreSnapshot(string appName, string vault) => RestoreProfile(DefaultProfile(appName)?.ProfileId, vault);
@@ -163,12 +165,14 @@ public static class SaveBoxManager
                     catch (Exception diagnosticError) when (diagnosticError is IOException or UnauthorizedAccessException) { }
                     throw new IOException(CopyError(ex), ex);
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                { throw new IOException(CopyError(ex), ex); }
+                string finalData = Path.Combine(target, "Data");
+                try { PathMigrationHelper.MigrateVaultPaths(data, vault, finalData); } catch { }
                 var profile = new SaveBoxSnapshot {
                     ProfileId = id, ProfileName = profileName, AppName = appName, AppPath = appPath, FolderPath = target,
                     SavedAt = DateTime.Now.ToString("MMM dd, yyyy • h:mm tt"), SizeMb = Math.Round(copied.Bytes / 1048576.0, 2),
-                    RegeneratedBrowserMetadata = copied.RegeneratedBrowserMetadata
+                    RegeneratedBrowserMetadata = copied.RegeneratedBrowserMetadata,
+                    OriginalVaultId = Path.GetFileName(vault.TrimEnd('\\', '/')),
+                    OriginalVaultPath = vault
                 };
                 File.WriteAllText(Path.Combine(staging, "manifest.json"), JsonSerializer.Serialize(profile));
                 if (Directory.Exists(target))
@@ -179,6 +183,7 @@ public static class SaveBoxManager
                 try { Directory.Move(staging, target); }
                 catch { if (backup != null && !Directory.Exists(target)) Directory.Move(backup, target); throw; }
                 _cache = null;
+                try { PathMigrationHelper.EnsureDirectoryJunction(vault, finalData); } catch { }
                 if (backup != null) { try { EphemeralVault.DeleteTree(backup); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
                 return true;
             }
@@ -190,6 +195,21 @@ public static class SaveBoxManager
             }
         }
     }
+    public static void PrepareProfileForLaunch(SaveBoxSnapshot profile)
+    {
+        try
+        {
+            string dataPath = Path.Combine(profile.FolderPath, "Data");
+            Directory.CreateDirectory(dataPath);
+            if (!string.IsNullOrWhiteSpace(profile.OriginalVaultPath))
+            {
+                PathMigrationHelper.EnsureDirectoryJunction(profile.OriginalVaultPath, dataPath);
+                PathMigrationHelper.MigrateVaultPaths(dataPath, profile.OriginalVaultPath, dataPath);
+            }
+            PathMigrationHelper.MigrateAnyOldVaultPaths(dataPath, dataPath);
+        }
+        catch { }
+    }
     public static bool RestoreProfile(string? profileId, string targetVault)
     {
         lock (SnapshotLock)
@@ -200,6 +220,7 @@ public static class SaveBoxManager
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
         }
     }
+    public static event Action<string>? ProfileDeleting;
     public static bool DeleteProfile(string? profileId)
     {
         lock (SnapshotLock)
@@ -212,6 +233,7 @@ public static class SaveBoxManager
                 if (!acquired) return false;
                 var profile = GetProfile(profileId);
                 if (profile == null) return false;
+                try { ProfileDeleting?.Invoke(profile.ProfileId); } catch { }
                 try { EphemeralVault.DeleteTree(profile.FolderPath); return !Directory.Exists(profile.FolderPath); }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
                 finally { _cache = null; }
@@ -272,5 +294,81 @@ public static class SaveBoxManager
             copied += CopyDirectory(child.FullName, Path.Combine(destination, child.Name), sourceRoot);
         }
         return copied;
+    }
+
+    public static void SyncVaultToProfile(string profileId, string vaultPath)
+    {
+        lock (SnapshotLock)
+        {
+            try
+            {
+                var profile = GetProfile(profileId);
+                if (profile == null) return;
+                string destData = Path.Combine(profile.FolderPath, "Data");
+                if (!Directory.Exists(destData)) Directory.CreateDirectory(destData);
+
+                SyncDirectories(vaultPath, destData, vaultPath);
+
+                PathMigrationHelper.MigrateVaultPaths(destData, vaultPath, destData);
+                if (!string.IsNullOrWhiteSpace(profile.OriginalVaultPath))
+                {
+                    PathMigrationHelper.EnsureDirectoryJunction(profile.OriginalVaultPath, destData);
+                }
+
+                profile.SavedAt = DateTime.Now.ToString("MMM dd, yyyy • h:mm tt");
+                profile.SizeMb = CalculateDirectorySizeMb(destData);
+                File.WriteAllText(Path.Combine(profile.FolderPath, "manifest.json"), JsonSerializer.Serialize(profile));
+                _cache = null;
+            }
+            catch { }
+        }
+    }
+
+    private static double CalculateDirectorySizeMb(string path)
+    {
+        try
+        {
+            if (!Directory.Exists(path)) return 0;
+            long bytes = 0;
+            var dir = new DirectoryInfo(path);
+            foreach (var f in dir.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                if ((f.Attributes & FileAttributes.ReparsePoint) == 0) bytes += f.Length;
+            }
+            return Math.Round(bytes / 1048576.0, 2);
+        }
+        catch { return 0; }
+    }
+
+    private static void SyncDirectories(string source, string destination, string? sourceRoot = null)
+    {
+        sourceRoot ??= source;
+        var dir = new DirectoryInfo(source);
+        if (!dir.Exists) return;
+        if ((dir.Attributes & FileAttributes.ReparsePoint) != 0) return;
+        Directory.CreateDirectory(destination);
+
+        foreach (var file in dir.GetFiles())
+        {
+            if (file.Name is VaultRecovery.OwnerFile or VaultRecovery.LeaseFile) continue;
+            if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+            string targetPath = Path.Combine(destination, file.Name);
+            try
+            {
+                if (!File.Exists(targetPath) || file.LastWriteTimeUtc > File.GetLastWriteTimeUtc(targetPath) || file.Length != new FileInfo(targetPath).Length)
+                {
+                    using var input = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                    using var output = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+                    input.CopyTo(output);
+                }
+            }
+            catch { }
+        }
+
+        foreach (var child in dir.GetDirectories())
+        {
+            if (ExcludeGeneratedFolder(Path.GetRelativePath(sourceRoot, child.FullName))) continue;
+            SyncDirectories(child.FullName, Path.Combine(destination, child.Name), sourceRoot);
+        }
     }
 }

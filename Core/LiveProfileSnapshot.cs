@@ -200,21 +200,37 @@ internal static class LiveProfileSnapshot
     private static long BackupSqlite(string source, string destination, bool sourceClosed)
     {
         // Pooling is off so saving does not keep handles on the running app's profile afterwards.
-        using var input = new SqliteConnection(new SqliteConnectionStringBuilder {
-            // Once the app has exited, let SQLite perform its normal journal recovery.
-            // Never request writable recovery on a live app's database.
-            DataSource = source, Mode = sourceClosed && (File.GetAttributes(source) & FileAttributes.ReadOnly) == 0 ? SqliteOpenMode.ReadWrite : SqliteOpenMode.ReadOnly,
-            Cache = SqliteCacheMode.Private, Pooling = false, DefaultTimeout = 3
-        }.ToString());
-        using var output = new SqliteConnection(new SqliteConnectionStringBuilder {
+        SqliteConnection? input = null;
+        bool readWrite = sourceClosed && (File.GetAttributes(source) & FileAttributes.ReadOnly) == 0;
+        try
+        {
+            input = new SqliteConnection(new SqliteConnectionStringBuilder {
+                DataSource = source, Mode = readWrite ? SqliteOpenMode.ReadWrite : SqliteOpenMode.ReadOnly,
+                Cache = SqliteCacheMode.Private, Pooling = false, DefaultTimeout = 3
+            }.ToString());
+            input.Open();
+        }
+        catch (SqliteException ex) when (readWrite && ex.SqliteErrorCode is 5 or 6)
+        {
+            input?.Dispose();
+            input = new SqliteConnection(new SqliteConnectionStringBuilder {
+                DataSource = source, Mode = SqliteOpenMode.ReadOnly,
+                Cache = SqliteCacheMode.Private, Pooling = false, DefaultTimeout = 3
+            }.ToString());
+            input.Open();
+        }
+        using (input)
+        using (var output = new SqliteConnection(new SqliteConnectionStringBuilder {
             DataSource = destination, Mode = SqliteOpenMode.ReadWriteCreate, Pooling = false, DefaultTimeout = 3
-        }.ToString());
-        input.Open(); output.Open();
-        input.BackupDatabase(output);
-        // The saved copy is standalone, rather than a DB + independently copied live WAL.
-        using var mode = output.CreateCommand(); mode.CommandText = "PRAGMA journal_mode=DELETE;"; mode.ExecuteScalar();
-        output.Close();
-        return new FileInfo(destination).Length;
+        }.ToString()))
+        {
+            output.Open();
+            input.BackupDatabase(output);
+            // The saved copy is standalone, rather than a DB + independently copied live WAL.
+            using var mode = output.CreateCommand(); mode.CommandText = "PRAGMA journal_mode=DELETE;"; mode.ExecuteScalar();
+            output.Close();
+            return new FileInfo(destination).Length;
+        }
     }
     private static FileStamp Stamp(string path)
     {

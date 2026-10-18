@@ -44,6 +44,7 @@ namespace MultiBox.Core
         private readonly object _lock = new();
         private bool _isTerminating;
         private ProfileActivityMonitor? _profileMonitor;
+        private string? _linkedProfileId;
         public ProfileCheck ProfileCheck => _profileMonitor?.Read() ?? new("unverified", "Profile unverified", "No app profile activity has been checked yet.", "Not started", "");
 
         public SessionState State { get; private set; } = SessionState.Idle;
@@ -80,7 +81,13 @@ namespace MultiBox.Core
             lock (_lock)
             {
                 if (_vault == null) { error = "No session files are available to save."; return false; }
-                return SaveBoxManager.SaveProfile(CurrentAppName, CurrentAppPath, _vault.RootPath, name, replaceProfileId, out error);
+                bool ok = SaveBoxManager.SaveProfile(CurrentAppName, CurrentAppPath, _vault.RootPath, name, replaceProfileId, out error);
+                if (ok)
+                {
+                    var prof = SaveBoxManager.ListSnapshots().FirstOrDefault(p => p.AppPath.Equals(CurrentAppPath, StringComparison.OrdinalIgnoreCase) && p.ProfileName.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    if (prof != null) _linkedProfileId = prof.ProfileId;
+                }
+                return ok;
             }
         }
 
@@ -104,6 +111,11 @@ namespace MultiBox.Core
                 {
                     Report("saving");
                     saved = SaveBoxManager.SaveProfile(CurrentAppName, CurrentAppPath, _vault.RootPath, name, replaceProfileId, out error, sourceClosed: true);
+                    if (saved)
+                    {
+                        var prof = SaveBoxManager.ListSnapshots().FirstOrDefault(p => p.AppPath.Equals(CurrentAppPath, StringComparison.OrdinalIgnoreCase) && p.ProfileName.Equals(name, StringComparison.OrdinalIgnoreCase));
+                        if (prof != null) _linkedProfileId = prof.ProfileId;
+                    }
                 }
                 catch (Exception) { error = "The save could not complete. Session files and existing saved copies were kept."; }
                 finally
@@ -185,9 +197,32 @@ namespace MultiBox.Core
                     // 1. Provision Ephemeral Vault if not resuming preserved session
                     if (_vault == null || State == SessionState.Idle)
                     {
+                        _linkedProfileId = restoreSavedProfile ? (profileId ?? SaveBoxManager.DefaultProfile(CurrentAppName)?.ProfileId) : null;
                         _vault = new EphemeralVault();
-                        if (restoreSavedProfile && !(profileId != null ? SaveBoxManager.RestoreProfile(profileId, _vault.RootPath) : SaveBoxManager.RestoreSnapshot(CurrentAppName, _vault.RootPath)))
-                            throw new IOException("The saved profile could not be restored. Existing sessions were kept.");
+                        if (restoreSavedProfile)
+                        {
+                            bool restored = profileId != null
+                                ? SaveBoxManager.RestoreProfile(profileId, _vault.RootPath)
+                                : SaveBoxManager.RestoreSnapshot(CurrentAppName, _vault.RootPath);
+
+                            if (!restored)
+                                throw new IOException("The saved profile could not be restored. Existing sessions were kept.");
+
+                            string? profIdToMigrate = profileId ?? _linkedProfileId;
+                            if (profIdToMigrate != null)
+                            {
+                                var savedProf = SaveBoxManager.GetProfile(profIdToMigrate);
+                                if (savedProf != null)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(savedProf.OriginalVaultPath))
+                                    {
+                                        PathMigrationHelper.EnsureDirectoryJunction(savedProf.OriginalVaultPath, _vault.RootPath);
+                                        PathMigrationHelper.MigrateVaultPaths(_vault.RootPath, savedProf.OriginalVaultPath, _vault.RootPath);
+                                    }
+                                    PathMigrationHelper.MigrateAnyOldVaultPaths(_vault.RootPath, _vault.RootPath);
+                                }
+                            }
+                        }
                     }
 
                     // 2. Create Job Object for atomic process-tree management
@@ -334,6 +369,10 @@ namespace MultiBox.Core
                         _telemetryTimer = null;
                         _process?.Dispose();
                         _process = null;
+                        if (_linkedProfileId != null && _vault != null)
+                        {
+                            try { SaveBoxManager.SyncVaultToProfile(_linkedProfileId, _vault.RootPath); } catch { }
+                        }
                         State = SessionState.Preserved;
                         paused = CurrentAppName;
                     }
@@ -396,6 +435,11 @@ namespace MultiBox.Core
                     _process = null;
                 }
 
+                if (_linkedProfileId != null && _vault != null)
+                {
+                    try { SaveBoxManager.SyncVaultToProfile(_linkedProfileId, _vault.RootPath); } catch { }
+                }
+
                 State = SessionState.Preserved;
             }
         }
@@ -412,10 +456,32 @@ namespace MultiBox.Core
                     _telemetryTimer = null;
                     _profileMonitor?.Dispose();
                     _profileMonitor = null;
-                    _jobObject?.Dispose();
-                    _jobObject = null;
-                    _process?.Dispose();
-                    _process = null;
+                    if (_jobObject != null)
+                    {
+                        try { _jobObject.Terminate(0); } catch { }
+                        var wait = Stopwatch.StartNew();
+                        while (_jobObject.GetProcessIds().Length > 0 && wait.Elapsed < TimeSpan.FromSeconds(5)) Thread.Sleep(40);
+                        _jobObject.Dispose();
+                        _jobObject = null;
+                    }
+                    if (_process != null)
+                    {
+                        try
+                        {
+                            if (!_process.HasExited)
+                            {
+                                _process.Kill(true);
+                                _process.WaitForExit(1000);
+                            }
+                        }
+                        catch { }
+                        _process.Dispose();
+                        _process = null;
+                    }
+                    if (_linkedProfileId != null && _vault != null)
+                    {
+                        try { SaveBoxManager.SyncVaultToProfile(_linkedProfileId, _vault.RootPath); } catch { }
+                    }
                     State = SessionState.Preserved;
                     if (_vault != null && !_vault.ScrubAndWipe())
                         throw new IOException("Some session files could not be deleted. Retry End & wipe.");
@@ -441,6 +507,14 @@ namespace MultiBox.Core
             _process?.Dispose();
             _process = null;
             State = preserveVault ? SessionState.Preserved : SessionState.Idle;
+        }
+
+        public void UnlinkProfile(string profileId)
+        {
+            lock (_lock)
+            {
+                if (_linkedProfileId == profileId) _linkedProfileId = null;
+            }
         }
 
         public void Dispose()

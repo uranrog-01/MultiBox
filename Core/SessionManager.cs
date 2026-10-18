@@ -46,6 +46,29 @@ public sealed class SessionManager : IDisposable
     public SessionWorkspace Snapshot() { lock (_sync) return BuildSnapshot(); }
     public IsolationEngine? GetEngine(string? id) { lock (_sync) return _entries.FirstOrDefault(e => e.Id == id)?.Engine; }
 
+    public SessionManager()
+    {
+        SaveBoxManager.ProfileDeleting += OnProfileDeleting;
+    }
+
+    private void OnProfileDeleting(string profileId)
+    {
+        Entry[] matching;
+        lock (_sync)
+        {
+            matching = _entries.Where(e => e.ProfileId == profileId).ToArray();
+        }
+        foreach (var entry in matching)
+        {
+            lock (entry.Gate)
+            {
+                try { entry.Engine.TerminateAndWipe(); } catch { }
+                lock (_sync) Remove(entry);
+            }
+        }
+        Publish();
+    }
+
     public bool LaunchNew(string rawPath, bool restoreSaved, out string error, string? profileId = null)
     {
         error = "";
@@ -161,7 +184,18 @@ public sealed class SessionManager : IDisposable
         lock (entry!.Gate)
         {
             result = entry.Engine.SaveNamedProfile(name, replaceProfileId, out error);
-            lock (_sync) { entry.Busy = false; entry.Error = result ? null : error; }
+            lock (_sync)
+            {
+                entry.Busy = false;
+                entry.Error = result ? null : error;
+                if (result && replaceProfileId != null)
+                {
+                    foreach (var other in _entries.Where(e => e.Id != id && e.ProfileId == replaceProfileId))
+                    {
+                        other.Engine.UnlinkProfile(replaceProfileId);
+                    }
+                }
+            }
         }
         Publish();
         return result;
@@ -276,6 +310,7 @@ public sealed class SessionManager : IDisposable
     }
     public void Dispose()
     {
+        SaveBoxManager.ProfileDeleting -= OnProfileDeleting;
         Entry[] entries;
         lock (_sync) { if (_disposed) return; _disposed = true; entries = _entries.ToArray(); }
         foreach (var entry in entries)
