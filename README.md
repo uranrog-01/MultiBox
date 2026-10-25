@@ -23,6 +23,7 @@ Separate logins, cookies and settings for every copy. Save the copies you want t
 - [See it in action](#see-it-in-action)
 - [What it does](#what-it-does)
 - [Quick start](#quick-start)
+- [Install](#install)
 - [How to use](#how-to-use)
 - [Compatibility](#compatibility)
 - [What is not separated](#what-is-not-separated)
@@ -58,12 +59,50 @@ MultiBox needs no admin rights, drivers or virtual machine. It is portable: one 
 
 ## Quick start
 
-1. Download the latest **`MultiBox-v…-win-x64.zip`** from [Releases](https://github.com/uranrog-01/MultiBox/releases/latest).
-2. Extract it anywhere and run **`MultiBox.exe`**.
-3. Drag an app's `.exe` or shortcut onto MultiBox, then click **Another copy** for each extra copy.
+**Installer (recommended)** — download **`MultiBox-Setup-v…-win-x64.exe`** from [Releases](https://github.com/uranrog-01/MultiBox/releases/latest) and run it. One wizard installs MultiBox, adds shortcuts, and registers a proper uninstaller.
+
+**Portable** — download **`MultiBox-v…-win-x64.zip`**, extract it anywhere, and run **`MultiBox.exe`**. Nothing is written outside that folder.
+
+Then:
+
+1. Drag an app's `.exe` or shortcut onto MultiBox, then click **Another copy** for each extra copy.
+2. Sign in to each copy with a different account.
+3. Name the ones you want to keep with **Save**; wipe the rest.
 
 > [!NOTE]
 > The first run may show a Windows SmartScreen warning. Click **More info → Run anyway**. [Why?](#faq--troubleshooting)
+
+## Install
+
+The setup is a single self-contained `.exe` with the whole app embedded — no separate download, no runtime to install first.
+
+| | |
+| :--- | :--- |
+| **Installs to** | `%LocalAppData%\Programs\MultiBox` (per user) or `C:\Program Files\MultiBox` (all users) |
+| **Creates** | Desktop shortcut, Start menu folder with an **Uninstall MultiBox** entry, an `Uninstall.exe` in the install folder, and a registration in **Settings → Apps → Installed apps** |
+| **Upgrades** | Running a newer setup over an existing install updates it in place; your sessions are kept |
+| **Sessions** | Live in `%LocalAppData%\MultiBox` and survive an uninstall unless you ask to remove them |
+
+### Command line
+
+Useful for scripted or unattended installs:
+
+```powershell
+MultiBox-Setup-v1.0.4-win-x64.exe                          # the wizard
+MultiBox-Setup-v1.0.4-win-x64.exe --silent                 # install with defaults, no UI
+MultiBox-Setup-v1.0.4-win-x64.exe --silent --install-to "D:\Tools\MultiBox"
+MultiBox-Setup-v1.0.4-win-x64.exe --silent --all-users     # Program Files (needs an admin prompt)
+MultiBox-Setup-v1.0.4-win-x64.exe --silent --no-desktop-shortcut --no-start-menu
+MultiBox-Setup-v1.0.4-win-x64.exe --extract-to "D:\Portable"   # app files only, no shortcuts or registry
+MultiBox-Setup-v1.0.4-win-x64.exe --version
+MultiBox-Setup-v1.0.4-win-x64.exe --help
+```
+
+`--extract-to` is a clean portable unpack — it touches nothing else on the system.
+
+### Uninstall
+
+Uninstall from **Settings → Apps → Installed apps → MultiBox**, from the Start menu folder, by running the `Uninstall.exe` next to `MultiBox.exe`, or with `MultiBox.exe --uninstall`. They all open the same uninstaller, which asks before removing your sessions and profiles.
 
 ## How to use
 
@@ -99,7 +138,7 @@ Closing or minimizing MultiBox sends it to the system tray. Click the tray icon 
 | Node.js & Bun | Bundled CLIs and background services | ✅ Own home, temp and XDG folders per copy. OpenCode and Cline get their own service ports. |
 | Firefox & Thunderbird | Mozilla apps | ✅ Own `-profile` with `-no-remote` |
 | Classic Win32 apps | 32-bit and 64-bit | ⚠️ Works when the app stores data in AppData. Registry settings are shared. |
-| Microsoft Store desktop apps | Codex (ChatGPT), Claude | ✅ Start from their `WindowsApps` folder like any other app |
+| Microsoft Store desktop apps | Codex (ChatGPT), Claude | ✅ Start from their `WindowsApps` folder. Codex/ChatGPT browse the real Windows profile; their account and session data stay in the Vault. |
 
 ## What is not separated
 
@@ -107,7 +146,7 @@ MultiBox separates app **profiles**. It is **not a security sandbox**: apps run 
 
 - The registry (`HKEY_CURRENT_USER`)
 - Windows Credential Manager. Apps that keep sign-in tokens there may share a login.
-- `AppData\LocalLow` and the Windows *Profile* folder, as returned by Electron's `app.getPath('home')` or Rust's `dirs::home_dir`
+- `AppData\LocalLow` and the Windows *Profile* folder, as returned by Electron's `app.getPath('home')` or Rust's `dirs::home_dir`. Codex/ChatGPT intentionally use this real profile for **Open Folder** and shell home; their account, session and browser data are still vaulted.
 - Your network connection and IP address
 
 To run untrusted software, use a virtual machine or Windows Sandbox instead.
@@ -130,6 +169,12 @@ Some apps allow only one running copy and send new launches to the open window. 
 <summary><b>OpenCode shows "Managed service port 45278 is already in use".</b></summary>
 
 OpenCode Desktop runs a background service on a fixed port, so a second copy collided with the first. MultiBox 1.0.4 and later give every copy its own port. Update to the latest release.
+</details>
+
+<details>
+<summary><b>Codex/ChatGPT's Open Folder starts in an empty user folder.</b></summary>
+
+The current build points Codex/ChatGPT's browse root at your real Windows profile, so **Open Folder** opens your actual Downloads and profile, and **Home / Desktop / Documents** lead to your real folders. Sign-in, sessions and browser data remain isolated in the session Vault. Older builds redirected the profile root into the empty Vault; rebuild or use the latest build.
 </details>
 
 <details>
@@ -160,7 +205,14 @@ dotnet build -c Release
 
 # Single-file, self-contained build
 dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
+
+# Or use the one-click builder — it reads the version from MultiBox.csproj
+.\build.bat            # dist\MultiBox-Setup-v<version>-win-x64.exe  (double-clickable)
+.\build.bat quick      # rebuild the setup UI only, reusing the existing payload
+.\build.bat zip        # the setup installer plus the portable zip
 ```
+
+`build-setup.ps1` publishes the app, packs it into the embedded payload, and produces the wizard. Add `-SkipApp` to rebuild only the setup UI while reusing the existing payload. The setup sources live in [`setup/`](setup/) (WPF, dark theme, no third-party UI packages).
 
 Run the native integration tests:
 
@@ -171,7 +223,7 @@ dotnet run --project tests/SessionTests -c Release -- tests/SessionFixture/bin/R
 
 ## How it works
 
-Each session starts the app suspended inside its own Windows **Job Object**, so every child process belongs to that session. The app's environment points `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `TEMP` and the XDG folders at the session's Vault folder. Chromium, Electron and Firefox also get explicit profile flags. **SaveBox** copies SQLite databases with the online backup API and skips caches and lock files.
+Each session starts the app suspended inside its own Windows **Job Object**, so every child process belongs to that session. The app's environment points `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `TEMP` and the XDG folders at the session's Vault folder. Codex/ChatGPT is the exception: it gets the real `USERPROFILE`/`HOME` for folder browsing, while `APPDATA`, `LOCALAPPDATA`, `CODEX_HOME` and its Chromium profile stay in the Vault. Chromium, Electron and Firefox also get explicit profile flags. **SaveBox** copies SQLite databases with the online backup API and skips caches and lock files.
 
 Read the full [architecture guide](ARCHITECTURE.md).
 

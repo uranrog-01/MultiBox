@@ -1776,6 +1776,7 @@
       getSaveBoxSnapshots: () => window.chrome?.webview?.postMessage({ action: 'getSaveBoxSnapshots' }),
       deleteSaveBoxSnapshot: (profileId) => window.chrome?.webview?.postMessage({ action: 'deleteSaveBoxSnapshot', profileId }),
       launchSaveBoxSnapshot: (profileId) => window.chrome?.webview?.postMessage({ action: 'launchSaveBoxSnapshot', profileId }),
+      fixSaveBoxSnapshot: (profileId) => window.chrome?.webview?.postMessage({ action: 'fixSaveBoxSnapshot', profileId }),
       cleanAllVaults: () => window.chrome?.webview?.postMessage({ action: 'cleanAllVaults' }),
       purgeAllVaultsConfirmed: () => window.chrome?.webview?.postMessage({ action: 'purgeAllVaultsConfirmed' }),
       getContextMenuStatus: () => window.chrome?.webview?.postMessage({ action: 'getContextMenuStatus' }),

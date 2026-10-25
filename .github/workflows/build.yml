@@ -34,3 +34,41 @@ jobs:
           name: MultiBox-win-x64
           path: out
           retention-days: 14
+
+  setup:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Publishes the app, packs it into the embedded payload, then builds the single-file setup exe.
+      - name: Build setup installer
+        shell: pwsh
+        run: ./build-setup.ps1
+
+      - name: Smoke-test the setup executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist -Filter 'MultiBox-Setup-*.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'Setup executable was not produced' }
+          Write-Host "Found $($exe.Name) ($([math]::Round($exe.Length/1MB,1)) MB)"
+
+          # The setup is a GUI-subsystem exe, so -Wait is required for a reliable exit code.
+          $version = Start-Process -FilePath $exe.FullName -ArgumentList '--version' -Wait -PassThru -NoNewWindow
+          Write-Host "--version exit code: $($version.ExitCode)"
+          if ($version.ExitCode -ne 0) { throw "--version failed with exit code $($version.ExitCode)" }
+
+          $help = Start-Process -FilePath $exe.FullName -ArgumentList '--help' -Wait -PassThru -NoNewWindow
+          if ($help.ExitCode -ne 0) { throw "--help failed with exit code $($help.ExitCode)" }
+          Write-Host 'Setup smoke test passed.'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MultiBox-Setup-win-x64
+          path: |
+            dist/MultiBox-Setup-*.exe
+            dist/MultiBox-Setup-*.exe.sha256
+          retention-days: 14

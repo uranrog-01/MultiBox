@@ -32,10 +32,26 @@ static class Program
 
         ApplicationConfiguration.Initialize();
 
+        // Setup installs Uninstall.exe as a hard link to this executable; launching it
+        // (with no arguments) goes straight to the uninstaller.
+        string? selfName = Path.GetFileNameWithoutExtension(Environment.ProcessPath);
+        if (selfName is not null && selfName.StartsWith("Uninstall", StringComparison.OrdinalIgnoreCase))
+        {
+            Application.Run(new UninstallForm());
+            return;
+        }
+
         if (args.Length == 1 && args[0] == "--save-open-profile")
         {
             // This helper deliberately creates no SessionManager and performs no startup cleanup.
             Application.Run(new SaveOpenProfileForm());
+            return;
+        }
+
+        if (args.Length == 1 && args[0] == "--uninstall")
+        {
+            // The uninstaller owns its own confirmation and cleanup; no session manager, no startup work.
+            Application.Run(new UninstallForm());
             return;
         }
 

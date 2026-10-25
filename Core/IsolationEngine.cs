@@ -280,15 +280,27 @@ namespace MultiBox.Core
                 UseShellExecute = false
             };
 
-            // Redirect primary profile paths to ephemeral vault
+            // Redirect primary profile paths to the ephemeral vault. Codex is the exception: its folder
+            // dialogs and exec host derive "home" from USERPROFILE, so a vaulted root makes Open Folder
+            // show an empty fake user profile. Its account, session and browser data stay in AppData and
+            // CODEX_HOME below; only the folder-browsing root points at the real Windows account.
+            string profileRoot = vault.UserProfile;
+            if (AppCompatibility.UsesRealUserProfile(targetExe))
+            {
+                string realProfile = AppCompatibility.RealUserProfile();
+                if (!string.IsNullOrWhiteSpace(realProfile) && Directory.Exists(realProfile) &&
+                    !string.Equals(Path.GetFullPath(realProfile).TrimEnd('\\'), Path.GetFullPath(vault.UserProfile).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                    profileRoot = Path.GetFullPath(realProfile);
+            }
+
             startInfo.Environment["APPDATA"] = vault.RoamingAppData;
             startInfo.Environment["LOCALAPPDATA"] = vault.LocalAppData;
-            startInfo.Environment["USERPROFILE"] = vault.UserProfile;
-            startInfo.Environment["HOME"] = vault.UserProfile;
+            startInfo.Environment["USERPROFILE"] = profileRoot;
+            startInfo.Environment["HOME"] = profileRoot;
 
-            string rootDrive = Path.GetPathRoot(vault.UserProfile)?.TrimEnd('\\') ?? "C:";
-            string homePath = vault.UserProfile.Length > rootDrive.Length 
-                ? vault.UserProfile.Substring(rootDrive.Length) 
+            string rootDrive = Path.GetPathRoot(profileRoot)?.TrimEnd('\\') ?? "C:";
+            string homePath = profileRoot.Length > rootDrive.Length
+                ? profileRoot.Substring(rootDrive.Length)
                 : "\\";
 
             startInfo.Environment["HOMEDRIVE"] = rootDrive;
@@ -318,7 +330,7 @@ namespace MultiBox.Core
             startInfo.Environment["CODEX_ELECTRON_USER_DATA_PATH"] = codexVaultDir;
             startInfo.Environment["CODEX_DESKTOP_USER_DATA_DIR"] = codexVaultDir;
             startInfo.Environment["CODEX_DESKTOP_SESSION_DATA_DIR"] = Path.Combine(codexVaultDir, "session");
-            startInfo.Environment["CODEX_DESKTOP_HOME_DIR"] = vault.UserProfile;
+            startInfo.Environment["CODEX_DESKTOP_HOME_DIR"] = profileRoot;
 
             // 4. Detect and optimize Electron / Chromium / Mozilla engines
             profile = ApplyEngineArguments(startInfo, targetExe, vault);

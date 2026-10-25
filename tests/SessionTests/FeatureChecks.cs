@@ -19,6 +19,31 @@ static class FeatureChecks
         string recoveryRoot = Path.Combine(fixtureDirectory, "recovery-" + token);
         string legacy = Path.Combine(SaveBoxManager.SaveBoxRoot, "Legacy-" + token);
         foreach (string copy in new[] { exe, quiet, generic }) File.Copy(Path.Combine(fixtureDirectory, "SessionFixture.exe"), copy);
+
+        // Codex's Electron folder dialog defaults to Downloads and then the profile root. Both must show
+        // the real Windows account, while Codex's account/session data remains inside the vault.
+        using (var envVault = new EphemeralVault(fixtureDirectory))
+        {
+            var createStartInfo = typeof(IsolationEngine).GetMethod("CreateStartInfo", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            string realProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string? Env(ProcessStartInfo start, string key) => start.Environment.TryGetValue(key, out string? value) ? value : null;
+
+            var codexStart = (ProcessStartInfo)createStartInfo.Invoke(null, new object?[] { Path.Combine(fixtureDirectory, "ChatGPT.exe"), envVault, null })!;
+            Check(string.Equals(Env(codexStart, "USERPROFILE"), realProfile, StringComparison.OrdinalIgnoreCase) &&
+                  string.Equals(Env(codexStart, "HOME"), realProfile, StringComparison.OrdinalIgnoreCase) &&
+                  string.Equals(Env(codexStart, "CODEX_DESKTOP_HOME_DIR"), realProfile, StringComparison.OrdinalIgnoreCase),
+                "Codex folder browsing was not pointed at the real Windows profile.");
+            Check(Env(codexStart, "APPDATA") == envVault.RoamingAppData &&
+                  Env(codexStart, "LOCALAPPDATA") == envVault.LocalAppData &&
+                  string.Equals(Env(codexStart, "CODEX_HOME"), Path.Combine(envVault.UserProfile, ".codex"), StringComparison.OrdinalIgnoreCase),
+                "Codex account or session data left the vault.");
+
+            var genericStart = (ProcessStartInfo)createStartInfo.Invoke(null, new object?[] { Path.Combine(fixtureDirectory, "Generic-" + token + ".exe"), envVault, null })!;
+            Check(string.Equals(Env(genericStart, "USERPROFILE"), envVault.UserProfile, StringComparison.OrdinalIgnoreCase),
+                "A non-Codex app lost its vaulted user profile.");
+            Console.WriteLine("PASS Codex browses the real Windows profile while its account/session data stays in the vault.");
+        }
+
         using var manager = new SessionManager();
         var profileIds = new List<string>();
         try

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>..\icon.ico</ApplicationIcon>
+    <AssemblyName>MultiBox.Setup</AssemblyName>
+    <RootNamespace>MultiBox.Setup</RootNamespace>
+    <Version>1.0.4</Version>
+    <Product>MultiBox Setup</Product>
+    <Company>zer0ne</Company>
+    <Authors>zer0ne</Authors>
+    <Copyright>Copyright © 2026 zer0ne</Copyright>
+    <Description>Modern setup experience for MultiBox</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\icon.png" Link="Assets\icon.png" />
+    <Resource Include="..\icon.ico" Link="Assets\icon.ico" />
+  </ItemGroup>
+
+  <!-- The application payload (payload.zip + payload.json) is produced by build-setup.ps1.
+       Normal `dotnet build` works without it; the wizard then reports a friendly error.
+       Publishing with -p:EmbedPayload=true fails fast when the payload is missing. -->
+  <ItemGroup Condition="'$(EmbedPayload)' == 'true'">
+    <EmbeddedResource Include="payload.zip" LogicalName="MultiBox.Payload.Zip" />
+    <EmbeddedResource Include="payload.json" LogicalName="MultiBox.Payload.Manifest" />
+  </ItemGroup>
+
+  <Target Name="EnsurePayload" BeforeTargets="PrepareForBuild" Condition="'$(EmbedPayload)' == 'true'">
+    <Error Condition="!Exists('payload.zip') or !Exists('payload.json')"
+           Text="payload.zip/payload.json not found in setup\. Run build-setup.ps1 (or just build.bat) from the repository root to embed the MultiBox payload." />
+  </Target>
+
+</Project>

@@ -120,17 +120,48 @@ public static class SaveBoxManager
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { error = ex.Message; return false; }
         }
     }
-    private static SaveBoxSnapshot? ValidateSaveTarget(string appPath, string vault, string name, string? replaceId)
+    internal static SaveBoxSnapshot? ValidateSaveTarget(string appPath, string vault, string name, string? replaceId)
     {
         if (name.Length is < 1 or > 40 || name.Any(char.IsControl)) throw new IOException("Use a profile name of 1–40 characters.");
         if (!Directory.Exists(vault)) throw new IOException("No session files are available to save.");
         var profiles = ListSnapshots(true);
         var replacing = replaceId == null ? null : profiles.FirstOrDefault(p => p.ProfileId == replaceId);
-        if (replaceId != null && (replacing == null || !replacing.AppPath.Equals(appPath, StringComparison.OrdinalIgnoreCase)))
+        // A stored path that no longer exists belongs to an app that updated or moved; replacing it is the cure, not an error.
+        if (replaceId != null && (replacing == null || (!replacing.AppPath.Equals(appPath, StringComparison.OrdinalIgnoreCase) && File.Exists(replacing.AppPath))))
             throw new IOException("That saved profile is missing or belongs to a different app. Create a new profile instead.");
         if (profiles.Any(p => p.AppPath.Equals(appPath, StringComparison.OrdinalIgnoreCase) && p.ProfileName.Equals(name, StringComparison.OrdinalIgnoreCase) && p.ProfileId != replaceId))
             throw new IOException("This app already has a profile with that name. Choose Replace or use another name.");
         return replacing;
+    }
+
+    /// <summary>Persists a healed executable path into a saved profile's manifest after an app update moved it.</summary>
+    internal static bool TryUpdateProfilePath(string profileId, string newPath, out string error)
+    {
+        lock (SnapshotLock)
+        {
+            error = "";
+            var profile = ListSnapshots(true).FirstOrDefault(p => p.ProfileId == profileId);
+            if (profile == null) { error = "That saved profile could not be found."; return false; }
+            using var procMutex = new Mutex(false, @"Local\MultiBox_SaveBox_Mutex");
+            bool acquired = false;
+            try { acquired = procMutex.WaitOne(TimeSpan.FromSeconds(5)); } catch (AbandonedMutexException) { acquired = true; }
+            if (!acquired) { error = "Another profile save is still running. Try again when it finishes."; return false; }
+            try
+            {
+                string exeName = Path.GetFileName(newPath);
+                if (exeName.Length == 0) { error = "The app executable could not be found."; return false; }
+                var updated = new SaveBoxSnapshot {
+                    ProfileId = profile.ProfileId, ProfileName = profile.ProfileName, AppName = exeName, AppPath = newPath,
+                    SavedAt = profile.SavedAt, SizeMb = profile.SizeMb, RegeneratedBrowserMetadata = profile.RegeneratedBrowserMetadata,
+                    OriginalVaultId = profile.OriginalVaultId, OriginalVaultPath = profile.OriginalVaultPath
+                };
+                File.WriteAllText(Path.Combine(profile.FolderPath, "manifest.json"), JsonSerializer.Serialize(updated));
+                _cache = null;
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { error = ex.Message; return false; }
+            finally { if (acquired) procMutex.ReleaseMutex(); }
+        }
     }
     public static bool SaveProfile(string appName, string appPath, string vault, string profileName, string? replaceProfileId, out string error, bool sourceClosed = false)
     {

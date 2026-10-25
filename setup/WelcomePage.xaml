@@ -1,0 +1,131 @@
+<UserControl x:Class="MultiBox.Setup.WelcomePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="300" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: copy -->
+        <Grid Grid.Column="0" Margin="0,0,26,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" VerticalAlignment="Center">
+            <Border Style="{StaticResource Chip}" HorizontalAlignment="Left">
+                <TextBlock x:Name="VersionChip" Style="{StaticResource Micro}" Foreground="#D3F58E" FontSize="10"
+                           FontWeight="SemiBold" Text="MULTIBOX v1.0.4 · WINDOWS X64" />
+            </Border>
+
+            <TextBlock Style="{StaticResource Display}" Margin="0,18,0,0" FontSize="34"
+                       Text="One launcher.&#10;Every session isolated." />
+
+            <TextBlock Style="{StaticResource Subheading}" Margin="0,14,0,0" TextWrapping="Wrap" MaxWidth="440"
+                       Text="MultiBox runs multiple independent copies of your favourite apps — each with its own cookies, profiles, and files. Setup takes under a minute." />
+
+            <StackPanel Margin="0,26,0,0">
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="10" Background="#14BAFF2A"
+                            BorderBrush="#2EBAFF2A" BorderThickness="1" VerticalAlignment="Top">
+                        <TextBlock Text="&#xE71F;" Style="{StaticResource Glyph}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="13,0,0,0">
+                        <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Text="Ephemeral session vaults" />
+                        <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap"
+                                   Text="Every session gets a disposable AppData vault, wiped when you say so." />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="10" Background="#14BAFF2A"
+                            BorderBrush="#2EBAFF2A" BorderThickness="1" VerticalAlignment="Top">
+                        <TextBlock Text="&#xE8D7;" Style="{StaticResource Glyph}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="13,0,0,0">
+                        <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Text="Named profiles with colors" />
+                        <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap"
+                                   Text="Save, reopen, and share session states as single-file profiles." />
+                    </StackPanel>
+                </Grid>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="10" Background="#14BAFF2A"
+                            BorderBrush="#2EBAFF2A" BorderThickness="1" VerticalAlignment="Top">
+                        <TextBlock Text="&#xE9F5;" Style="{StaticResource Glyph}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="13,0,0,0">
+                        <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" Text="Featherlight footprint" />
+                        <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap"
+                                   Text="One folder, no drivers, no services. Uninstall leaves nothing behind." />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+            </StackPanel>
+
+            <!-- Upgrade banner: its own row so it never overlaps the feature list -->
+            <Border x:Name="UpgradeBanner" Grid.Row="1" Style="{StaticResource Card}" Padding="14,11"
+                    Margin="0,16,0,0" Visibility="Collapsed">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#14BAFF2A" Offset="0" />
+                        <GradientStop Color="#0812090E" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE895;" Style="{StaticResource Glyph}" FontSize="15" VerticalAlignment="Center" />
+                    <StackPanel Margin="12,0,0,0">
+                        <TextBlock Style="{StaticResource Body}" FontWeight="SemiBold" x:Name="UpgradeTitle" Text="Upgrade detected" />
+                        <TextBlock Style="{StaticResource Dim}" x:Name="UpgradeDetail" TextWrapping="Wrap"
+                                   Text="An existing MultiBox installation was found. Setup will update it in place — your sessions stay." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Right: hero visual -->
+        <Grid Grid.Column="1" VerticalAlignment="Stretch" Margin="6,4,0,4">
+            <Border Style="{StaticResource Card}" Padding="0" CornerRadius="18" ClipToBounds="True">
+                <Grid>
+                    <Ellipse HorizontalAlignment="Center" VerticalAlignment="Center" Width="300" Height="300" Opacity="0.8">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Color="#2EBAFF2A" Offset="0" />
+                                <GradientStop Color="#00BAFF2A" Offset="0.72" />
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <Ellipse HorizontalAlignment="Center" VerticalAlignment="Center" Width="216" Height="216"
+                             Stroke="#24BAFF2A" StrokeThickness="1" StrokeDashArray="1 1.4" Opacity="0.9" />
+                    <Ellipse HorizontalAlignment="Center" VerticalAlignment="Center" Width="256" Height="256"
+                             Stroke="#1631C9A0" StrokeThickness="1" Opacity="0.8" />
+                    <Image x:Name="HeroIcon" Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality" Source="Assets/icon.png">
+                        <Image.Effect>
+                            <DropShadowEffect Color="#BAFF2A" BlurRadius="30" ShadowDepth="0" Opacity="0.35" />
+                        </Image.Effect>
+                    </Image>
+                    <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,22" HorizontalAlignment="Center">
+                        <TextBlock Text="MULTIBOX" FontFamily="Segoe UI" FontSize="15" FontWeight="Bold" Foreground="#F0F6EE"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock x:Name="HeroVersion" Style="{StaticResource Micro}" FontSize="10" Margin="0,4,0,0"
+                                   HorizontalAlignment="Center" Text="INSTALLER BUNDLE" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

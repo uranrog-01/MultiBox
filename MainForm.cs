@@ -146,6 +146,8 @@ namespace MultiBox
 
             _sessions = new SessionManager();
             _sessions.Changed += Sessions_Changed;
+            _sessions.ProfilePathHealed += (appName, profileName, newPath) =>
+                Notify("success", $"'{profileName}' now points at the updated {appName}. The saved profile was refreshed automatically.");
 
             _webView = new WebView2
             {
@@ -864,7 +866,13 @@ namespace MultiBox
                         string launchingId = root.TryGetProperty("profileId", out var launchingValue) ? launchingValue.GetString() ?? "" : "";
                         var savedProfile = SaveBoxManager.GetProfile(launchingId);
                         if (savedProfile == null) Notify("error", "That saved profile could not be found. Existing sessions were kept.");
-                        else LaunchApp(savedProfile.AppPath, true, savedProfile.ProfileId);
+                        else LaunchApp(savedProfile.AppPath, true, savedProfile.ProfileId, () => OpenFixProfile(savedProfile));
+                        break;
+                    case "fixSaveBoxSnapshot":
+                        string fixingId = root.TryGetProperty("profileId", out var fixingValue) ? fixingValue.GetString() ?? "" : "";
+                        var fixingProfile = SaveBoxManager.GetProfile(fixingId);
+                        if (fixingProfile == null) Notify("error", "That saved profile could not be found. Existing sessions were kept.");
+                        else OpenFixProfile(fixingProfile);
                         break;
                     case "getRecoveryStatus":
                         SendRecoveryStatus();
@@ -954,13 +962,34 @@ namespace MultiBox
             catch (InvalidOperationException) { }
         }
 
-        private void LaunchApp(string rawPath, bool restoreSavedProfile = false, string? profileId = null)
+        private void LaunchApp(string rawPath, bool restoreSavedProfile = false, string? profileId = null, Action? onMissingExecutable = null)
         {
             if (string.IsNullOrWhiteSpace(rawPath)) return;
             Task.Run(() =>
             {
                 if (!_sessions.LaunchNew(rawPath, restoreSavedProfile, out string error, profileId))
+                {
                     Notify("error", error);
+                    if (onMissingExecutable != null && error.Contains("executable could not be found", StringComparison.OrdinalIgnoreCase))
+                        this.BeginInvoke(onMissingExecutable);
+                }
+            });
+        }
+
+        private void OpenFixProfile(SaveBoxSnapshot profile)
+        {
+            this.BeginInvoke(() =>
+            {
+                using var form = new FixProfileForm(profile);
+                if (form.ShowDialog(this) != DialogResult.OK || form.FixedPath == null) return;
+                if (!SaveBoxManager.TryUpdateProfilePath(profile.ProfileId, form.FixedPath, out string error))
+                {
+                    Notify("error", error);
+                    return;
+                }
+                Notify("success", $"Saved profile '{profile.ProfileName}' now points at {System.IO.Path.GetFileName(form.FixedPath)}.");
+                SendSaveBoxSnapshotsToUi();
+                LaunchApp(form.FixedPath, true, profile.ProfileId);
             });
         }
 
@@ -1205,7 +1234,11 @@ namespace MultiBox
         {
             try
             {
-                var list = SaveBoxManager.ListSnapshots(true);
+                var list = SaveBoxManager.ListSnapshots(true).Select(profile => new {
+                    profile.ProfileId, profile.ProfileName, profile.AppName, profile.AppPath, profile.SavedAt,
+                    profile.SizeMb, profile.FolderPath, profile.RegeneratedBrowserMetadata,
+                    profile.OriginalVaultId, profile.OriginalVaultPath, Broken = IsBrokenProfile(profile)
+                });
                 string json = JsonSerializer.Serialize(list);
                 this.Invoke(() =>
                 {
@@ -1213,6 +1246,16 @@ namespace MultiBox
                 });
             }
             catch { }
+        }
+
+        private static bool IsBrokenProfile(SaveBoxSnapshot profile)
+        {
+            try
+            {
+                string resolved = ShortcutResolver.Resolve(profile.AppPath);
+                return !(File.Exists(resolved) || Directory.Exists(resolved));
+            }
+            catch { return true; }
         }
 
         private void MainForm_DragEnter(object? sender, DragEventArgs e)

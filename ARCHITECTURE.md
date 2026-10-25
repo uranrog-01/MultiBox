@@ -14,6 +14,7 @@ How MultiBox starts apps in separate sessions, keeps their data apart, saves pro
 6. [User interface](#5-user-interface)
 7. [Security notes](#6-security-notes)
 8. [Limitations](#7-limitations)
+9. [Distribution and setup](#8-distribution-and-setup)
 
 ---
 
@@ -106,7 +107,7 @@ Some apps collide with their first copy through resources that environment varia
 | **Fixed localhost service port.** | OpenCode Desktop (`opencode-cli serve --service`, port 45278) | Writes a free per-session port to `<Vault>\User\.config\opencode\service.json` (the file `opencode service set port` uses) and removes the stale service registration from restored profiles. |
 | | Cline (hub daemon, port 25463) | Sets `CLINE_HUB_PORT` to a free per-session port. Without it, the copy would attach to, or fail against, the host's hub. |
 | **Shared WebView2 data folder.** | WebView2 apps that never set a data folder (`<exe>.WebView2` next to the exe) | Sets `WEBVIEW2_USER_DATA_FOLDER` into the Vault. Apps that choose their own folder (Tauri's `EBWebView`) already follow the Vault and are left alone. |
-| **Packaged apps.** | Microsoft Store desktop apps (`WindowsApps`), e.g. Codex, Claude | Started by path like any other app. If Windows denies the start, MultiBox explains that instead of showing "Access is denied". |
+| **Packaged apps and Codex folder browsing.** | Microsoft Store desktop apps (`WindowsApps`), e.g. Codex, Claude | Started by path like any other app. If Windows denies the start, MultiBox explains that instead of showing "Access is denied". Codex/ChatGPT also receive the real `USERPROFILE`/`HOME`, because Electron's Open Folder dialog starts in Downloads (falling back to the profile) and Codex's exec host reads `USERPROFILE`. `APPDATA`, `LOCALAPPDATA`, `TEMP`, `CODEX_HOME` and `--user-data-dir` stay in the Vault, so sign-in, session and browser state remain per session. |
 
 Ports are chosen from a fixed range, stay stable per session while free, and are never handed to two sessions at once.
 
@@ -120,6 +121,8 @@ Ports are chosen from a fixed range, stay stable per session while free, and are
 | Tauri | Data via known folders → Vault; mutex released | ✅ |
 | WebView2 | App-chosen folder → Vault; default folder redirected | ✅ |
 | Win32 / WOW64 | Known folders → Vault; registry shared | ⚠️ |
+
+Codex/ChatGPT is the one deliberate exception to the vaulted home: its account, session and browser data stay in the Vault, but the profile root is real so **Open Folder** and shell tools see the machine's actual user folders instead of an empty fake profile. Files the app writes directly to the real profile (for example `~/.cache`) are shared with the host and are not part of SaveBox.
 
 ---
 
@@ -165,6 +168,19 @@ MultiBox separates **profiles**. It is not a security boundary.
 
 - **Registry**: `HKEY_CURRENT_USER` is shared. Apps that keep settings or accounts in the registry share them between copies.
 - **Credential Manager / DPAPI vault**: shared per Windows user. Apps that keep tokens there (for example via `keytar`) may share a login.
-- **Folders not driven by environment variables**: `AppData\LocalLow` and the *Profile* known folder (Electron `app.getPath('home')`, Rust `dirs::home_dir`) point to your real profile.
+- **Folders not driven by environment variables**: `AppData\LocalLow` and the *Profile* known folder (Electron `app.getPath('home')`, Rust `dirs::home_dir`) point to your real profile. Codex/ChatGPT use the real profile root on purpose for folder browsing; their account/session state is still vaulted.
 - **File and network access** are not restricted.
 - **Other single-instance methods**, such as named pipes, fixed ports in other apps or window-class checks, are handled only for the apps listed in section 3.
+
+---
+
+## 8. Distribution and setup
+
+Two artifacts ship from the same source: a portable zip (`build-release.ps1`) and a setup wizard (`build-setup.ps1`).
+
+- **Embedded payload**: `build-setup.ps1` publishes the app, packs it into `setup/payload.zip`, and writes `setup/payload.json` (version, sizes, file list). Both are embedded as resources into `MultiBox.Setup.exe`, so the installer is one file with nothing to download alongside it. `MultiBox.csproj` excludes `setup/**` so the wizard's sources never compile into the app.
+- **Setup project** (`setup/`, WPF, no third-party UI packages): a four-step wizard — welcome, destination, installing, finish — sharing the app's dark palette (`#050807` with lime `#BAFF2A`). `InstallEngine` streams the archive entry by entry, reports real byte progress, writes an on-disk `manifest.json`, creates shortcuts through `WScript.Shell`, and registers the Add/Remove Programs key.
+- **Rollback**: cancelling or failing mid-install deletes the files written so far and removes the destination folder if the installer created it.
+- **Upgrade detection**: `InstallTargets.Detect()` checks the registry key, then the default folders, and the welcome page reports an in-place upgrade.
+- **Headless modes**: `--silent`, `--install-to`, `--all-users`, `--extract-to`, `--version`, `--help` run without a window and return meaningful exit codes, which is also how CI smoke-tests the artifact. `--extract-to` is a pure portable unpack that writes no shortcuts and no registry keys.
+- **Uninstall**: the app itself hosts the uninstaller (`Uninstall.exe`, `MultiBox.exe --uninstall`, `UninstallForm.cs`) so no second executable ships. The setup creates `Uninstall.exe` as a **hard link** to `MultiBox.exe` — a separately launchable uninstaller with zero extra disk space — and falls back to `MultiBox.exe --uninstall` on file systems without hard links. It closes running app copies, removes shortcuts and the registry key, asks separately about session data, and defers the folder delete to a retrying script that runs after the process exits — the running `.exe` locks its own folder.

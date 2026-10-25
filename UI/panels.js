@@ -107,16 +107,19 @@
       const path = snapshot.appPath || snapshot.AppPath || '';
       const date = snapshot.savedAt || snapshot.SavedAt || 'Recently';
       const size = snapshot.sizeMb ?? snapshot.SizeMb ?? 0;
+      const broken = (snapshot.broken ?? snapshot.Broken) === true;
       const card = document.createElement('article');
       card.className = 'saved-profile';
-      card.innerHTML = '<div class="saved-profile-top"><div class="saved-profile-mark">' + archiveIcon + '</div><div class="saved-profile-info"><div class="saved-profile-name"></div><div class="saved-profile-meta"></div></div></div><div class="saved-profile-actions"><button class="vault-button primary" type="button">Open</button><button class="vault-button danger" type="button">Delete</button></div>';
+      card.innerHTML = '<div class="saved-profile-top"><div class="saved-profile-mark">' + archiveIcon + '</div><div class="saved-profile-info"><div class="saved-profile-name"></div><div class="saved-profile-meta"></div></div></div><div class="saved-profile-actions"><button class="vault-button primary" type="button">Open</button>' + (broken ? '<button class="vault-button primary" type="button">Fix path</button>' : '') + '<button class="vault-button danger" type="button">Delete</button></div>';
       card.querySelector('.saved-profile-name').textContent = profileName;
       // When and how big matter most before opening or deleting a copy, so show them, not just in a tooltip.
       const sizeText = size >= 1024 ? `${(size / 1024).toFixed(1)} GB` : size < 1 ? '<1 MB' : `${Math.round(size)} MB`;
-      card.querySelector('.saved-profile-meta').textContent = `${name.replace(/\.exe$/i, '')} · ${date} · ${sizeText}`;
-      card.querySelector('.saved-profile-meta').title = `${size} MB · Saved ${date}`;
+      card.querySelector('.saved-profile-meta').textContent = `${name.replace(/\.exe$/i, '')} · ${date} · ${sizeText}` + (broken ? ' · location missing' : '');
+      card.querySelector('.saved-profile-meta').title = `${size} MB · Saved ${date}` + (broken ? ' · The saved app path no longer exists; Fix path hunts for its new location.' : '');
       card.querySelector('.saved-profile-name').title = path;
-      card.querySelector('.primary').addEventListener('click', () => launchSaved(profileId));
+      const primaryButtons = card.querySelectorAll('.saved-profile-actions .primary');
+      primaryButtons[0].addEventListener('click', () => launchSaved(profileId));
+      if (broken) primaryButtons[1].addEventListener('click', () => window.chrome_backend?.fixSaveBoxSnapshot(profileId));
       const remove = card.querySelector('.danger');
       remove.setAttribute('aria-label', `Delete ${profileName} for ${name}`);
       remove.addEventListener('click', () => deleteSnapshot(profileId, `${profileName} · ${name}`));

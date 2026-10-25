@@ -50,6 +50,28 @@ internal static class AppCompatibility
     }
 
     /// <summary>
+    /// Codex/ChatGPT's project picker is an Electron folder dialog. Without an explicit starting folder it uses
+    /// the user's Downloads folder, then the Windows profile folder. A vaulted profile makes both point at an
+    /// empty fake home, so Open Folder appears to hide the machine's real user folder. Codex keeps its account,
+    /// session and browser data in AppData and CODEX_HOME, which stay in the vault; only the profile root is real.
+    /// </summary>
+    internal static bool UsesRealUserProfile(string targetExe)
+    {
+        string name = Path.GetFileName(targetExe);
+        return name.Contains("codex", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("chatgpt", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The real Windows profile of the user running MultiBox, independent of a session's environment.</summary>
+    internal static string RealUserProfile()
+    {
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return string.IsNullOrWhiteSpace(profile)
+            ? Environment.GetEnvironmentVariable("USERPROFILE") ?? string.Empty
+            : profile;
+    }
+
+    /// <summary>
     /// Explains a failed start in plain language. Microsoft Store apps (C:\Program Files\WindowsApps) normally
     /// start fine by path, e.g. Codex/ChatGPT and Claude desktop; only when Windows denies one is this shown.
     /// </summary>

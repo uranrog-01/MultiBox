@@ -8,9 +8,27 @@ $name = "MultiBox-v$version-win-x64"
 $stage = Join-Path $PSScriptRoot "dist\$name"
 $zip = Join-Path $PSScriptRoot "dist\$name.zip"
 
+# Explorer, search indexing or antivirus can hold a brief handle on files in dist\;
+# retry the delete instead of failing the whole build.
+function Remove-Stale([string]$Path, [switch]$Recurse)
+{
+    for ($attempt = 1; $attempt -le 10; $attempt++)
+    {
+        if (-not (Test-Path -LiteralPath $Path)) { return }
+        try
+        {
+            if ($Recurse) { Remove-Item -LiteralPath $Path -Recurse -Force }
+            else { Remove-Item -LiteralPath $Path -Force }
+            return
+        }
+        catch { Start-Sleep -Milliseconds 400 }
+    }
+    throw "Could not delete '$Path' - it is locked by another program. Close any window using it and run the build again."
+}
+
 # Always start from an empty folder so files from older builds never ship.
-if (Test-Path $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
-if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }
+Remove-Stale -Path $stage -Recurse
+Remove-Stale -Path $zip
 
 dotnet publish MultiBox.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:DebugType=None -o $stage
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }

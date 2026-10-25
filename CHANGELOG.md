@@ -2,6 +2,21 @@
 
 All notable changes to MultiBox. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **MultiBox Setup** — a modern setup wizard (`MultiBox-Setup-v<version>-win-x64.exe`) for people who want a normal Windows install instead of a zip. A single self-contained file with the whole app embedded: browse for a destination, choose shortcuts, watch real progress, and finish with **Launch MultiBox now**. It matches the app's own dark, luminous design.
+  - Installs per user (no admin prompt, the default) or for all users into `Program Files`, and registers a proper entry in **Settings → Apps → Installed apps**.
+  - Running a newer setup over an existing install upgrades in place and keeps your sessions; an existing install is detected and shown on the welcome page.
+  - Unattended and portable modes: `--silent`, `--install-to`, `--all-users`, `--no-desktop-shortcut`, `--no-start-menu`, `--extract-to`, `--version`, `--help`.
+  - Cancelling mid-install rolls back the files it had written.
+  - `build.bat` at the repository root builds the installer for whatever version is in `MultiBox.csproj` — bump the version, run it, and `dist\` gets the new setup. `build.bat quick` skips the app publish, `build.bat zip` also builds the portable zip.
+- **Uninstaller** — a real `Uninstall.exe` in the install folder (installed as a hard link to the app, so it costs no extra space), also reachable from **Settings → Apps**, the Start menu folder, and `MultiBox.exe --uninstall`. It closes running MultiBox copies, removes the shortcuts and registry entry, and asks separately before deleting your sessions and profiles. The install folder is cleaned up after the app exits.
+
+### Fixed
+- **"The app executable could not be found" after a Store app update.** Saved profiles froze the full path to the app's executable, and Microsoft Store apps (Codex/ChatGPT, Claude) live in versioned `WindowsApps` folders that are deleted and replaced on every update — so clicking the profile in Vault failed after every update, and Store apps have no classic Start Menu shortcut for the old fallback to find. Launch paths now resolve to the current Store package location, versioned `app-<version>` install folders (Squirrel-style) heal the same way, a successful launch writes the new path back into the profile automatically, and Vault → Saved → Replace accepts a profile whose stored path went missing instead of refusing it.
+- **Codex/ChatGPT → Open Folder** now starts in the real Windows user profile instead of the empty isolated Vault. Electron's folder dialog defaults to Downloads and then the profile folder; both were being redirected. Codex/ChatGPT now see the real profile root while `APPDATA`, `LOCALAPPDATA`, `TEMP`, `CODEX_HOME` and the Chromium user-data folder remain in the Vault, so sign-in, sessions and browser state stay per session.
+
 ## [1.0.4] - 2026-10-18
 
 ### Added

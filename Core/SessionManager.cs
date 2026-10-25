@@ -42,6 +42,8 @@ public sealed class SessionManager : IDisposable
     private long _revision;
     private bool _disposed;
     public event Action<SessionWorkspace>? Changed;
+    /// <summary>Fired when a saved-profile launch recovered from an app update: (appName, profileName, healedPath).</summary>
+    public event Action<string, string, string>? ProfilePathHealed;
     public string? SelectedId { get { lock (_sync) return _selected; } }
     public SessionWorkspace Snapshot() { lock (_sync) return BuildSnapshot(); }
     public IsolationEngine? GetEngine(string? id) { lock (_sync) return _entries.FirstOrDefault(e => e.Id == id)?.Engine; }
@@ -76,11 +78,12 @@ public sealed class SessionManager : IDisposable
         try { path = ShortcutResolver.Resolve(rawPath); }
         catch (Exception ex) { error = ex.Message; return false; }
         if (!File.Exists(path)) { error = "The app executable could not be found. Existing sessions were kept."; return false; }
-        if (restoreSaved && !SaveBoxManager.HasSnapshot(System.IO.Path.GetFileName(path)))
+        if (restoreSaved && profileId == null && !SaveBoxManager.HasSnapshot(System.IO.Path.GetFileName(path)))
         { error = "The saved profile could not be found. Existing sessions were kept."; return false; }
         var savedProfile = profileId != null ? SaveBoxManager.GetProfile(profileId) : null;
-        if (restoreSaved && profileId != null && (savedProfile == null || !savedProfile.AppPath.Equals(path, StringComparison.OrdinalIgnoreCase)))
+        if (restoreSaved && profileId != null && IsProfileAppMismatch(savedProfile, path))
         { error = "That saved profile is missing or belongs to a different app. Existing sessions were kept."; return false; }
+        bool healedPath = restoreSaved && profileId != null && savedProfile != null && !savedProfile.AppPath.Equals(path, StringComparison.OrdinalIgnoreCase);
         Entry entry;
         lock (_sync)
         {
@@ -110,8 +113,21 @@ public sealed class SessionManager : IDisposable
                 if (!success) Remove(entry);
             }
         }
+        if (success && healedPath && savedProfile != null && profileId != null)
+        {
+            SaveBoxManager.TryUpdateProfilePath(profileId, path, out _);
+            ProfilePathHealed?.Invoke(savedProfile.AppName, savedProfile.ProfileName, path);
+        }
         Publish();
         return success;
+    }
+    /// <summary>True when the saved profile cannot belong to this app. Same-named executables at a moved location are accepted; the profile then self-heals after a successful launch.</summary>
+    internal static bool IsProfileAppMismatch(SaveBoxSnapshot? savedProfile, string resolvedPath)
+    {
+        if (savedProfile == null) return true;
+        if (savedProfile.AppPath.Equals(resolvedPath, StringComparison.OrdinalIgnoreCase)) return false;
+        return File.Exists(savedProfile.AppPath)
+            || !string.Equals(System.IO.Path.GetFileName(savedProfile.AppPath), System.IO.Path.GetFileName(resolvedPath), StringComparison.OrdinalIgnoreCase);
     }
     public bool Select(string id)
     {

@@ -209,6 +209,7 @@ try
     Check(manager.WipeMany(five.Select(s => s.Id), out error), error);
     Check(manager.Snapshot().Sessions.Count == 0 && SaveBoxManager.HasSnapshot(uniqueName), "End all discarded saved profiles or left a session behind.");
     checks.Add("Five concurrent launches remain independent; End all keeps saved profiles. Failed saves retain the last valid saved copy.");
+    await UpdateHealChecks.Run();
     await FeatureChecks.Run(fixtureDirectory);
     await RestartSaveChecks.Run(fixtureDirectory);
     foreach (string check in checks) Console.WriteLine("PASS " + check);
