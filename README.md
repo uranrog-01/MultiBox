@@ -61,7 +61,7 @@ MultiBox needs no admin rights, drivers or virtual machine. It is portable: one 
 
 **Installer (recommended)** — download **`MultiBox-Setup-v…-win-x64.exe`** from [Releases](https://github.com/uranrog-01/MultiBox/releases/latest) and run it. One wizard installs MultiBox, adds shortcuts, and registers a proper uninstaller.
 
-**Portable** — download **`MultiBox-v…-win-x64.zip`**, extract it anywhere, and run **`MultiBox.exe`**. Nothing is written outside that folder.
+**Portable (no install)** — download the setup and extract it anywhere with `MultiBox-Setup-…-win-x64.exe --extract-to <folder>`, then run `MultiBox.exe` from that folder. Nothing is written outside it.
 
 Then:
 
