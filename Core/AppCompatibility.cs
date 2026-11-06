@@ -82,6 +82,61 @@ internal static class AppCompatibility
         return error.Message;
     }
 
+    /// <summary>
+    /// Storefront-managed games (the GoldSrc launcher and similar Steam-apps entries) relay their start through
+    /// the storefront client: launched directly they register themselves with Steam and exit, and Steam spawns
+    /// the real game outside the session's job — the session then looks like it died instantly. The launcher
+    /// runs its engine in-process when given -steam, the very argument Steam itself passes; the remaining
+    /// dependency is that the Steam client is running. When it is not, start it silently — the same relay the
+    /// launcher itself would perform — and wait for it. Best-effort: a failure here must never block a launch.
+    /// </summary>
+    public static void EnsureStorefrontRunning(string targetExe)
+    {
+        try
+        {
+            string dir = Path.GetDirectoryName(targetExe) ?? string.Empty;
+            if (!dir.Contains(@"\steamapps\common\", StringComparison.OrdinalIgnoreCase))
+                return;
+            if (Process.GetProcessesByName("steam").Length > 0) return;
+            string? steamExe = FindSteamExecutable(dir);
+            if (steamExe == null) return;
+            Process.Start(new ProcessStartInfo(steamExe, "-silent") { UseShellExecute = true });
+            var deadline = Stopwatch.StartNew();
+            while (deadline.Elapsed < TimeSpan.FromSeconds(30) && Process.GetProcessesByName("steam").Length == 0)
+                Thread.Sleep(500);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Win32Exception or InvalidOperationException) { }
+    }
+
+    /// <summary>True when the executable lives inside a Steam library (…\steamapps\common\…) or Steam sits above it.</summary>
+    internal static bool IsSteamManaged(string directory)
+    {
+        if (directory.Contains(@"\steamapps\common\", StringComparison.OrdinalIgnoreCase)) return true;
+        DirectoryInfo? current = new DirectoryInfo(directory);
+        while (current != null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "steam.exe"))) return true;
+            current = current.Parent;
+        }
+        return false;
+    }
+
+    /// <summary>Finds steam.exe above the game folder, falling back to the registry the GoldSrc launcher itself uses.</summary>
+    private static string? FindSteamExecutable(string gameDirectory)
+    {
+        DirectoryInfo? current = new DirectoryInfo(gameDirectory);
+        while (current != null)
+        {
+            string candidate = Path.Combine(current.FullName, "steam.exe");
+            if (File.Exists(candidate)) return candidate;
+            current = current.Parent;
+        }
+        string? registered = null;
+        try { registered = Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamExe", null) as string; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
+        return registered != null && File.Exists(registered) ? registered : null;
+    }
+
     private static void PrepareOpenCode(EphemeralVault vault)
     {
         int port = ReservePort(vault.VaultId + ":opencode-service", 46000, 1000);
@@ -165,6 +220,14 @@ internal static class SingleInstanceLocks
     private const string HeldSuffix = " (MultiBox: starting isolated copy)";
     private static readonly TimeSpan WatchFor = TimeSpan.FromSeconds(20);
 
+    // Fixed single-instance mutex names that follow no naming convention (unlike "*single*instance*" or
+    // Tauri's "<id>-sim"), verified in the app binaries. Names are compared lowercase via LastSegment.
+    private static readonly HashSet<string> KnownSingleInstanceMutexes = new(StringComparer.Ordinal)
+    {
+        // Half-Life / GoldSrc launcher (hl.exe): CreateMutexA, then "Only one instance of this game can be run at a time."
+        "valvehalflifelaunchermutex",
+    };
+
     /// <summary>Windows of other copies renamed while an isolated copy starts.</summary>
     internal sealed class HeldWindows
     {
@@ -231,6 +294,7 @@ internal static class SingleInstanceLocks
         if (string.IsNullOrEmpty(objectName)) return false;
         string name = LastSegment(objectName);
         return IsTauriMutex(objectName) ||
+            KnownSingleInstanceMutexes.Contains(name) ||
             name.Contains("singleinstance") || name.Contains("single-instance") || name.Contains("single_instance");
     }
 

@@ -12,6 +12,16 @@ static class FeatureChecks
     }
     public static async Task Run(string fixtureDirectory)
     {
+        // Single-instance mutex recognition: known fixed launcher names must be closed, ordinary app mutexes never.
+        Check(SingleInstanceLocks.IsSingleInstanceName(@"\Sessions\1\BaseNamedObjects\ValveHalfLifeLauncherMutex"), "Half-Life's launcher mutex was not recognized as a single-instance lock.");
+        Check(SingleInstanceLocks.IsSingleInstanceName(@"\Sessions\1\BaseNamedObjects\app.example-sim"), "Tauri's single-instance mutex was not recognized.");
+        Check(!SingleInstanceLocks.IsSingleInstanceName(@"\Sessions\1\BaseNamedObjects\MalwarebytesDbIntegrityMonitor"), "Malwarebytes' DB-integrity mutex was mistaken for a single-instance lock.");
+        Check(!SingleInstanceLocks.IsSingleInstanceName(@"\Sessions\1\BaseNamedObjects\SM0:12672:304:WilStaging_02"), "A WIL staging mutex was mistaken for a single-instance lock.");
+        Check(!SingleInstanceLocks.IsSingleInstanceName(@"\Sessions\1\BaseNamedObjects\__DDrawExclMode__"), "A DirectDraw exclusion mutex was mistaken for a single-instance lock.");
+        Check(AppCompatibility.IsSteamManaged(@"C:\Program Files (x86)\Steam\steamapps\common\Half-Life"), "A Steam library app was not recognized as Steam-managed.");
+        Check(!AppCompatibility.IsSteamManaged(Path.GetTempPath()), "An ordinary folder was mistaken for a Steam library.");
+        Console.WriteLine("PASS Single-instance lock names match Tauri and known launcher mutexes; ordinary app mutexes are left alone.");
+
         string token = Guid.NewGuid().ToString("N");
         string exe = Path.Combine(fixtureDirectory, "chrome-" + token + ".exe");
         string quiet = Path.Combine(fixtureDirectory, "quiet-chrome-" + token + ".exe");

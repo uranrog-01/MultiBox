@@ -138,6 +138,8 @@ Closing or minimizing MultiBox sends it to the system tray. Click the tray icon 
 | Node.js & Bun | Bundled CLIs and background services | ✅ Own home, temp and XDG folders per copy. OpenCode and Cline get their own service ports. |
 | Firefox & Thunderbird | Mozilla apps | ✅ Own `-profile` with `-no-remote` |
 | Classic Win32 apps | 32-bit and 64-bit | ⚠️ Works when the app stores data in AppData. Registry settings are shared. |
+| GoldSrc games (Half-Life) | hl.exe, Counter-Strike 1.6 | ✅ The launcher's one-instance mutex is released, the launcher runs inside the session (`-steam`, the argument Steam itself passes), and Steam is started automatically when it is missing. Real concurrent sessions verified; use windowed mode when a fullscreen copy owns the screen. |
+| Service-brokered apps | Malwarebytes | ❌ The second copy hands off to the running service and exits by design. Its lock lives in a protected SYSTEM service, not in the app, so there is nothing MultiBox can release. |
 | Microsoft Store desktop apps | Codex (ChatGPT), Claude | ✅ Start from their `WindowsApps` folder. Codex/ChatGPT browse the real Windows profile; their account and session data stay in the Vault. |
 
 ## What is not separated
@@ -162,7 +164,7 @@ Releases are signed with a self-signed certificate (`CN=zer0ne`), which Windows 
 <details>
 <summary><b>An app opened my existing window instead of a new copy.</b></summary>
 
-Some apps allow only one running copy and send new launches to the open window. MultiBox handles Electron/Chromium profile locks and Tauri's single-instance lock. If an app still does this, [open an issue](https://github.com/uranrog-01/MultiBox/issues) with the app's name and version.
+Some apps allow only one running copy and send new launches to the open window. MultiBox handles Electron/Chromium profile locks, Tauri's single-instance lock, mutexes named after the `single-instance` convention and known launcher mutexes (Half-Life's `ValveHalfLifeLauncherMutex`). Two kinds still refuse a second copy: apps that check with a method MultiBox does not cover (see [Architecture → Limitations](ARCHITECTURE.md)), and apps whose single instance is brokered by a protected background service — Malwarebytes' second copy asks `MBAMService` to activate the open window and exits, with no local lock to release. If an app still does this, [open an issue](https://github.com/uranrog-01/MultiBox/issues) with the app's name and version.
 </details>
 
 <details>

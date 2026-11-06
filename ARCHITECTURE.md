@@ -103,13 +103,38 @@ Some apps collide with their first copy through resources that environment varia
 
 | Problem | Affected apps | Fix |
 | :--- | :--- | :--- |
-| **Named single-instance mutex.** A second copy finds the mutex, sends its arguments to the open window and exits. | Tauri apps (`<identifier>-sim`, e.g. Cline), apps using `single-instance` mutex names | `SingleInstanceLocks` finds other running copies of the **same executable path**, reads their mutex names (`NtQuerySystemInformation` + `NtQueryObject`) and closes only names that match single-instance conventions (`DuplicateHandle` with `DUPLICATE_CLOSE_SOURCE`). Other mutexes are not touched. Works for 32-bit and 64-bit targets. |
+| **Named single-instance mutex.** A second copy finds the mutex, sends its arguments to the open window and exits. | Tauri apps (`<identifier>-sim`, e.g. Cline), apps using `single-instance` mutex names, and launchers with a fixed well-known mutex (Half-Life's `ValveHalfLifeLauncherMutex`) | `SingleInstanceLocks` finds other running copies of the **same executable path**, reads their mutex names (`NtQuerySystemInformation` + `NtQueryObject`) and closes only names that match single-instance conventions or the known-name list (`DuplicateHandle` with `DUPLICATE_CLOSE_SOURCE`). Other mutexes are not touched. Works for 32-bit and 64-bit targets. |
 | **Fixed localhost service port.** | OpenCode Desktop (`opencode-cli serve --service`, port 45278) | Writes a free per-session port to `<Vault>\User\.config\opencode\service.json` (the file `opencode service set port` uses) and removes the stale service registration from restored profiles. |
 | | Cline (hub daemon, port 25463) | Sets `CLINE_HUB_PORT` to a free per-session port. Without it, the copy would attach to, or fail against, the host's hub. |
 | **Shared WebView2 data folder.** | WebView2 apps that never set a data folder (`<exe>.WebView2` next to the exe) | Sets `WEBVIEW2_USER_DATA_FOLDER` into the Vault. Apps that choose their own folder (Tauri's `EBWebView`) already follow the Vault and are left alone. |
 | **Packaged apps and Codex folder browsing.** | Microsoft Store desktop apps (`WindowsApps`), e.g. Codex, Claude | Started by path like any other app. If Windows denies the start, MultiBox explains that instead of showing "Access is denied". Codex/ChatGPT also receive the real `USERPROFILE`/`HOME`, because Electron's Open Folder dialog starts in Downloads (falling back to the profile) and Codex's exec host reads `USERPROFILE`. `APPDATA`, `LOCALAPPDATA`, `TEMP`, `CODEX_HOME` and `--user-data-dir` stay in the Vault, so sign-in, session and browser state remain per session. |
 
 Ports are chosen from a fixed range, stay stable per session while free, and are never handed to two sessions at once.
+
+### App categories: the two axes
+
+Every app MultiBox meets is classified on two independent axes, and each combination decides what launch support it needs. A runtime tells MultiBox **where the app keeps its data** (the Vault strategy); a single-instance mechanism tells MultiBox **why a second copy refuses to start** (the compatibility strategy). New app support is always one of three moves: extend a table, add a handler in `AppCompatibility.Prepare`, or document the case as unsupported.
+
+**Axis 1 — runtime (data isolation):** covered by the [runtime summary](#runtime-summary) below — Electron/Chromium, Firefox/Gecko, WebView2, Tauri, Node.js/Bun, .NET (Framework and modern; `%APPDATA%` redirection works the same as Win32), classic Win32/Win64, Microsoft Store packages.
+
+**Axis 2 — single-instance mechanism:**
+
+| Mechanism | How the app does it | MultiBox handling | Status |
+| :--- | :--- | :--- | :--- |
+| None | Runs any number of copies | Nothing needed | ✅ default |
+| Profile lock | Chromium/Electron `SingletonLock`/`lockfile` inside the user-data dir | Own user-data dir per Vault | ✅ |
+| Engine flags | Firefox `-profile … -no-remote`, Electron `--user-data-dir` | Arguments injected at launch | ✅ |
+| Mutex by convention | Mutex name contains `single-instance`/`singleinstance` | Mutex closed in other copies and in the session's own copy | ✅ |
+| Known fixed mutex | A hard-coded name following no convention — Half-Life's `ValveHalfLifeLauncherMutex` | Known-name table in `SingleInstanceLocks`; extend per verified app | ✅ extendable |
+| Tauri window pair | `<id>-sim` mutex + `<id>-sic`/`<id>-siw` forwarding window | Window renamed (not the mutex), launch passes, then the session's own mutex is closed | ✅ |
+| Fixed service port | Binds a localhost port at startup (OpenCode 45278, Cline hub 25463) | Per-session ports; per-app env/config fixes | ✅ per app |
+| Storefront dependency | Launcher exits without its storefront client — `hl.exe` relays through Steam and exits, and Steam spawns the real game outside the session's job | `AppCompatibility.EnsureStorefrontRunning` starts Steam silently when missing (the relay the launcher itself performs); the engine layer passes `-steam`, the argument Steam itself passes, so the launcher runs its engine inside the session's job | ✅ |
+| Window-class check | `FindWindow(class)` finds the first copy and forwards/exits (common in older Win32 apps and games) | Not covered yet | 🔜 future |
+| Named-pipe handoff | First copy runs a pipe/socket server; the second forwards its command line and exits (Qt `QLocalServer`, VB.NET `WindowsFormsApplicationBase`) | Not covered yet | 🔜 future |
+| Service-brokered | Second copy asks a background service to activate the open UI and exits — Malwarebytes; no local lock exists at all | Impossible from user mode: the lock lives in a SYSTEM service that denies `OpenProcess` | ❌ never |
+| Self-protected / anti-cheat / DRM | A driver blocks handle access (Malwarebytes self-protection, EAC/BattlEye, Denuvo) | Not attempted — touching these is both impossible and wrong | ❌ never |
+
+Two design rules keep the mechanism axis safe: mutexes are only ever closed in processes running the **identical executable path**, and generic name matching stays deliberately conservative (a mutex named after the app, like many .NET/WPF apps use, is *not* matched — closing an unknown mutex can break an unrelated feature). Anything that doesn't fit a safe pattern goes on the known-name table only after being verified in the app's binary, the way `ValveHalfLifeLauncherMutex` was.
 
 ### Runtime summary
 
@@ -120,6 +145,7 @@ Ports are chosen from a fixed range, stay stable per session while free, and are
 | Electron | `userData`, single-instance lock keyed on it → Vault | ✅ |
 | Tauri | Data via known folders → Vault; mutex released | ✅ |
 | WebView2 | App-chosen folder → Vault; default folder redirected | ✅ |
+| .NET (Framework and modern) | `%APPDATA%`/`%LOCALAPPDATA%` env vars → Vault; registry-backed settings shared | ⚠️ |
 | Win32 / WOW64 | Known folders → Vault; registry shared | ⚠️ |
 
 Codex/ChatGPT is the one deliberate exception to the vaulted home: its account, session and browser data stay in the Vault, but the profile root is real so **Open Folder** and shell tools see the machine's actual user folders instead of an empty fake profile. Files the app writes directly to the real profile (for example `~/.cache`) are shared with the host and are not part of SaveBox.
@@ -171,6 +197,8 @@ MultiBox separates **profiles**. It is not a security boundary.
 - **Folders not driven by environment variables**: `AppData\LocalLow` and the *Profile* known folder (Electron `app.getPath('home')`, Rust `dirs::home_dir`) point to your real profile. Codex/ChatGPT use the real profile root on purpose for folder browsing; their account/session state is still vaulted.
 - **File and network access** are not restricted.
 - **Other single-instance methods**, such as named pipes, fixed ports in other apps or window-class checks, are handled only for the apps listed in section 3.
+- **Service-brokered single instance** (Malwarebytes) cannot be bypassed at all: the second `Malwarebytes.exe` copy holds no single-instance mutex — it asks the running `MBAMService` to activate the existing UI and exits with code 0. The lock lives in a SYSTEM service that also denies `OpenProcess` from a normal user (and self-protects when active), so user-mode MultiBox has no handle to release — and should not have one.
+- **Storefront relays** (Half-Life via Steam): the GoldSrc launcher either runs its engine in-process (`-steam`, how Steam launches it) or hands off to the Steam client and exits. MultiBox passes `-steam` and starts the Steam client when missing, so the game runs inside the session's job. The Steam client itself allows only one running instance per AppID, which no user-mode launcher can override.
 
 ---
 

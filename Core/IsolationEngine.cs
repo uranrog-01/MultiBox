@@ -241,6 +241,8 @@ namespace MultiBox.Core
                     _profileMonitor = new ProfileActivityMonitor(profile.Path, profile.Method, profile.Explicit);
 
                     // Neither this copy nor a normal copy of the app may capture the other's launches.
+                    // A storefront-managed game also needs its client (Steam) running before the launch.
+                    AppCompatibility.EnsureStorefrontRunning(targetExe);
                     var heldWindows = SingleInstanceLocks.PrepareLaunch(targetExe);
 
                     // Attach before the app runs so its children stay in this session.
@@ -381,6 +383,17 @@ namespace MultiBox.Core
                     ? mozillaArgs
                     : $"{startInfo.Arguments} {mozillaArgs}";
                 return (vault.UserDataDir, "Mozilla profile argument", true);
+            }
+
+            // GoldSrc (Steam Half-Life family): without -steam the launcher relays itself through the
+            // Steam client and exits, leaving nothing in the session's job. -steam — the argument Steam
+            // itself passes — makes it run the engine inside this session. Only when Steam manages the install.
+            if (fileName == "hl.exe" && AppCompatibility.IsSteamManaged(dir))
+            {
+                startInfo.Arguments = string.IsNullOrWhiteSpace(startInfo.Arguments)
+                    ? "-steam"
+                    : $"{startInfo.Arguments} -steam";
+                return (vault.UserProfile, "GoldSrc launcher (-steam)", true);
             }
             return (vault.UserProfile, "Profile environment variables", false);
         }
