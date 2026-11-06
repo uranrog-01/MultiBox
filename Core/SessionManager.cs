@@ -75,7 +75,8 @@ public sealed class SessionManager : IDisposable
     {
         error = "";
         string path;
-        try { path = ShortcutResolver.Resolve(rawPath); }
+        string? shortcutArguments, shortcutWorkingDirectory;
+        try { path = ShortcutResolver.Resolve(rawPath, out shortcutArguments, out shortcutWorkingDirectory); }
         catch (Exception ex) { error = ex.Message; return false; }
         if (!File.Exists(path)) { error = "The app executable could not be found. Existing sessions were kept."; return false; }
         if (restoreSaved && profileId == null && !SaveBoxManager.HasSnapshot(System.IO.Path.GetFileName(path)))
@@ -102,7 +103,7 @@ public sealed class SessionManager : IDisposable
         lock (entry.Gate)
         {
             lock (_sync) { if (_disposed) { error = "MultiBox is closing."; return false; } }
-            success = entry.Engine.LaunchIsolated(path, out error, restoreSaved, profileId);
+            success = entry.Engine.LaunchIsolated(path, out error, restoreSaved, profileId, shortcutArguments, shortcutWorkingDirectory);
             string state = entry.Engine.State == SessionState.Running ? "running" : "preserved";
             string vault = entry.Engine.CurrentVaultRootPath ?? "";
             lock (_sync)

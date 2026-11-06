@@ -10,6 +10,18 @@ namespace MultiBox.Core
     {
         public static string Resolve(string path)
         {
+            return Resolve(path, out _, out _);
+        }
+
+        /// <summary>
+        /// Resolves the launch target and, when the path is a shortcut, the arguments and working directory it
+        /// carried. Games such as Counter-Strike 1.6 start through shortcuts like "hl.exe -game cstrike": without
+        /// those arguments the engine launches the wrong game (or none at all) and exits immediately.
+        /// </summary>
+        public static string Resolve(string path, out string? arguments, out string? workingDirectory)
+        {
+            arguments = null;
+            workingDirectory = null;
             if (string.IsNullOrWhiteSpace(path)) return path;
 
             // Trim quotes if wrapped
@@ -69,7 +81,7 @@ namespace MultiBox.Core
                 }
             }
 
-            // 5. If it's a .lnk shortcut, resolve target executable
+            // 5. If it's a .lnk shortcut, resolve target executable and its launch arguments
             if (path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) && File.Exists(path))
             {
                 try
@@ -87,6 +99,10 @@ namespace MultiBox.Core
                                 string expanded = Environment.ExpandEnvironmentVariables(rawTarget);
                                 if (File.Exists(expanded))
                                 {
+                                    string rawArguments = ((string)shortcut.Arguments).Trim();
+                                    if (rawArguments.Length > 0) arguments = rawArguments;
+                                    string rawWorkingDirectory = Environment.ExpandEnvironmentVariables(((string)shortcut.WorkingDirectory).Trim());
+                                    if (rawWorkingDirectory.Length > 0 && Directory.Exists(rawWorkingDirectory)) workingDirectory = rawWorkingDirectory;
                                     // Check if shortcut pointed to Codex.exe helper
                                     if (Path.GetFileName(expanded).Equals("Codex.exe", StringComparison.OrdinalIgnoreCase))
                                     {

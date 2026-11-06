@@ -54,6 +54,9 @@ namespace MultiBox.Core
         public Process? ActiveProcess => _process;
         public string CurrentAppPath { get; private set; } = string.Empty;
         public string CurrentAppName { get; private set; } = string.Empty;
+        /// <summary>Arguments the user's shortcut carried (for example "-game cstrike"); applied on launch and reuse.</summary>
+        public string? CurrentAppArguments { get; private set; }
+        public string? CurrentAppWorkingDirectory { get; private set; }
         public string? CurrentVaultRootPath => _vault?.RootPath;
 
         public bool HasSavedSnapshot()
@@ -123,7 +126,7 @@ namespace MultiBox.Core
                     if (reopen)
                     {
                         Report("reopening");
-                        reopened = LaunchIsolated(CurrentAppPath, out string reopenError);
+                        reopened = LaunchIsolated(CurrentAppPath, out string reopenError, shortcutArguments: CurrentAppArguments, shortcutWorkingDirectory: CurrentAppWorkingDirectory);
                         if (!reopened) warning = "The app could not reopen. Its session files were kept; use Open to retry. " + reopenError;
                     }
                 }
@@ -172,7 +175,7 @@ namespace MultiBox.Core
             return true;
         }
 
-        public bool LaunchIsolated(string rawPath, out string errorMessage, bool restoreSavedProfile = false, string? profileId = null)
+        public bool LaunchIsolated(string rawPath, out string errorMessage, bool restoreSavedProfile = false, string? profileId = null, string? shortcutArguments = null, string? shortcutWorkingDirectory = null)
         {
             errorMessage = string.Empty;
             lock (_lock)
@@ -186,13 +189,18 @@ namespace MultiBox.Core
 
                 try
                 {
-                    string targetExe = ShortcutResolver.Resolve(rawPath);
+                    string targetExe = ShortcutResolver.Resolve(rawPath, out string? resolvedArguments, out string? resolvedWorkingDirectory);
                     if (!File.Exists(targetExe))
                     {
                         errorMessage = $"Executable not found at path: {targetExe}";
                         return false;
                     }
 
+                    // Arguments and working directory carried by the user's shortcut win; a direct exe
+                    // path keeps whatever its own resolution found (normally nothing). On reopen the
+                    // stored values survive: callers re-entering with a bare exe path keep their launch.
+                    CurrentAppArguments = shortcutArguments ?? resolvedArguments ?? CurrentAppArguments;
+                    CurrentAppWorkingDirectory = shortcutWorkingDirectory ?? resolvedWorkingDirectory ?? CurrentAppWorkingDirectory;
                     CurrentAppPath = targetExe;
                     CurrentAppName = Path.GetFileName(targetExe);
 
@@ -237,6 +245,14 @@ namespace MultiBox.Core
 
                     // 3-5. Environment redirection, engine profile flags and per-app fixes
                     var startInfo = CreateStartInfo(targetExe, _vault, out var profile);
+                    // The user's own launch arguments (for example a Counter-Strike shortcut's
+                    // "-game cstrike") come first; engine arguments appended inside CreateStartInfo stay.
+                    if (!string.IsNullOrWhiteSpace(CurrentAppArguments))
+                        startInfo.Arguments = string.IsNullOrWhiteSpace(startInfo.Arguments)
+                            ? CurrentAppArguments
+                            : $"{CurrentAppArguments} {startInfo.Arguments}";
+                    if (!string.IsNullOrWhiteSpace(CurrentAppWorkingDirectory) && Directory.Exists(CurrentAppWorkingDirectory))
+                        startInfo.WorkingDirectory = CurrentAppWorkingDirectory;
                     _profileMonitor?.Dispose();
                     _profileMonitor = new ProfileActivityMonitor(profile.Path, profile.Method, profile.Explicit);
 

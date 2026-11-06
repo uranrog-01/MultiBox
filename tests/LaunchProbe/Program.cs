@@ -1,17 +1,17 @@
 using MultiBox.Core;
 
-// E2E probe: drives the real MultiBox engine (SessionManager) against an arbitrary exe,
-// reporting session liveness, job PIDs and window presence. Wipes every session it creates.
-// Usage: LaunchProbe <exePath> [waitSeconds] [--two]
-string exe = ShortcutResolver.Resolve(args[0]);
+string rawPath = args[0];
 int waitSeconds = args.Length > 1 && int.TryParse(args[1], out int w) ? w : 20;
 bool two = args.Contains("--two");
+
+string preResolved = ShortcutResolver.Resolve(rawPath, out string? preArgs, out string? preWd);
+Console.WriteLine($"RESOLVE: exe=[{preResolved}] args=[{preArgs}] wd=[{preWd}]");
 
 using var manager = new SessionManager();
 var created = new List<string>();
 try
 {
-    if (!manager.LaunchNew(exe, false, out string error))
+    if (!manager.LaunchNew(rawPath, false, out string error))
     {
         Console.WriteLine($"SESSION1 LAUNCH FAILED: {error}");
         return 1;
@@ -22,7 +22,7 @@ try
     if (two)
     {
         await Task.Delay(3000);
-        bool secondOk = manager.LaunchNew(exe, false, out string error2);
+        bool secondOk = manager.LaunchNew(rawPath, false, out string error2);
         if (secondOk) created.Add(manager.Snapshot().Sessions.Last().Id);
         Console.WriteLine(secondOk ? $"SESSION2 launched id={created[^1]}" : $"SESSION2 LAUNCH FAILED: {error2}");
     }
