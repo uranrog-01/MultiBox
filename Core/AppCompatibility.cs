@@ -90,8 +90,10 @@ internal static class AppCompatibility
         if (!alreadyRunning) return false;
         explanation = $"{Path.GetFileNameWithoutExtension(name)} allows {PipeBrokeredMarker}. " +
                       "Its second copy hands the launch to the open window through a protected single-instance pipe " +
-                      "and exits - there is no lock MultiBox can release. Close the running copy first, or launch it " +
-                      "under a different Windows account for a real second window.";
+                      "and exits - there is no lock MultiBox can release. A separate profile does not change this: " +
+                      "the lock name comes from the app's code and your Windows account, not from the profile folder " +
+                      "(unlike Codex, Claude and other Electron apps, whose lock lives inside the profile). " +
+                      "Close the running copy first, or launch it under a different Windows account for a real second window.";
         return true;
     }
 
