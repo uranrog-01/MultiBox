@@ -797,6 +797,18 @@ namespace MultiBox
                         }
                         break;
 
+                    case "launchAppAsUser":
+                        if (root.TryGetProperty("path", out var runAsPathElem))
+                        {
+                            string runAsPath = runAsPathElem.GetString() ?? string.Empty;
+                            string user = root.TryGetProperty("user", out var userElem) ? userElem.GetString() ?? string.Empty : string.Empty;
+                            string domain = root.TryGetProperty("domain", out var domainElem) ? domainElem.GetString() ?? string.Empty : string.Empty;
+                            string password = root.TryGetProperty("password", out var passwordElem) ? passwordElem.GetString() ?? string.Empty : string.Empty;
+                            if (user.Length == 0) { Notify("error", "Enter the Windows account name to launch under."); break; }
+                            LaunchApp(runAsPath, false, null, null, user, domain.Length == 0 ? "." : domain, password);
+                        }
+                        break;
+
                     case "reopenApp":
                     case "reopenOrFocusApp":
                         ReopenOrFocusApp(sessionId);
@@ -962,12 +974,12 @@ namespace MultiBox
             catch (InvalidOperationException) { }
         }
 
-        private void LaunchApp(string rawPath, bool restoreSavedProfile = false, string? profileId = null, Action? onMissingExecutable = null)
+        private void LaunchApp(string rawPath, bool restoreSavedProfile = false, string? profileId = null, Action? onMissingExecutable = null, string? runAsUser = null, string? runAsDomain = null, string? runAsPassword = null)
         {
             if (string.IsNullOrWhiteSpace(rawPath)) return;
             Task.Run(() =>
             {
-                if (!_sessions.LaunchNew(rawPath, restoreSavedProfile, out string error, profileId))
+                if (!_sessions.LaunchNew(rawPath, restoreSavedProfile, out string error, profileId, runAsUser, runAsDomain, runAsPassword))
                 {
                     Notify("error", error);
                     if (onMissingExecutable != null && error.Contains("executable could not be found", StringComparison.OrdinalIgnoreCase))

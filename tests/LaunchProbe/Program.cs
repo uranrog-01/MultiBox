@@ -3,15 +3,22 @@ using MultiBox.Core;
 string rawPath = args[0];
 int waitSeconds = args.Length > 1 && int.TryParse(args[1], out int w) ? w : 20;
 bool two = args.Contains("--two");
+string? runAsUser = null, runAsDomain = null, runAsPassword = null;
+for (int i = 0; i < args.Length - 1; i++)
+{
+    if (args[i] == "--user") runAsUser = args[i + 1];
+    if (args[i] == "--domain") runAsDomain = args[i + 1];
+    if (args[i] == "--password") runAsPassword = args[i + 1];
+}
 
 string preResolved = ShortcutResolver.Resolve(rawPath, out string? preArgs, out string? preWd);
-Console.WriteLine($"RESOLVE: exe=[{preResolved}] args=[{preArgs}] wd=[{preWd}]");
+Console.WriteLine($"RESOLVE: exe=[{preResolved}] args=[{preArgs}] wd=[{preWd}] runAs=[{runAsUser ?? "(same user)"}]");
 
 using var manager = new SessionManager();
 var created = new List<string>();
 try
 {
-    if (!manager.LaunchNew(rawPath, false, out string error))
+    if (!manager.LaunchNew(rawPath, false, out string error, null, runAsUser, runAsDomain ?? ".", runAsPassword))
     {
         Console.WriteLine($"SESSION1 LAUNCH FAILED: {error}");
         return 1;

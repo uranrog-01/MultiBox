@@ -139,7 +139,7 @@ Closing or minimizing MultiBox sends it to the system tray. Click the tray icon 
 | Firefox & Thunderbird | Mozilla apps | ✅ Own `-profile` with `-no-remote` |
 | Classic Win32 apps | 32-bit and 64-bit | ⚠️ Works when the app stores data in AppData. Registry settings are shared. |
 | GoldSrc games (Half-Life) | hl.exe, Counter-Strike 1.6 | ✅ The launcher's one-instance mutex is released, the launcher runs inside the session (`-steam`, the argument Steam itself passes), and Steam is started automatically when it is missing. Real concurrent sessions verified; use windowed mode when a fullscreen copy owns the screen. |
-| Service-brokered apps | Malwarebytes | ❌ The second copy connects to the open window's single-instance pipe, hands over its arguments and exits — the open window just comes to front. Nothing to release; one window per Windows account (a real second window needs a different Windows account). MultiBox refuses the launch with this explanation instead of the confusing flash-and-close. |
+| Service-brokered apps | Malwarebytes | ✅ Two windows run side by side when the second copy launches under a **different Windows account** — the app's single-instance pipe name embeds the user SID, so the accounts don't collide. Same account: MultiBox refuses with an explanation and a "Different user…" button instead of the confusing flash-and-close. The second copy's session data still goes into its Vault. |
 | Microsoft Store desktop apps | Codex (ChatGPT), Claude | ✅ Start from their `WindowsApps` folder. Codex/ChatGPT browse the real Windows profile; their account and session data stay in the Vault. |
 
 ## What is not separated

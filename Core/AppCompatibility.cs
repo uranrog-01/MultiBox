@@ -60,6 +60,9 @@ internal static class AppCompatibility
         "malwarebytes.exe",
     };
 
+    /// <summary>The phrase the pipe-brokered refusal always contains; the UI uses it to offer a different-account launch.</summary>
+    public const string PipeBrokeredMarker = "one window per Windows account";
+
     /// <summary>True when a launch must be refused because a pipe-brokered single-instance app is already running.</summary>
     public static bool PipeBrokeredSingleInstanceBlocked(string targetExe, out string explanation)
     {
@@ -85,7 +88,7 @@ internal static class AppCompatibility
         }
         catch (Exception) { }
         if (!alreadyRunning) return false;
-        explanation = $"{Path.GetFileNameWithoutExtension(name)} allows one window per Windows account. " +
+        explanation = $"{Path.GetFileNameWithoutExtension(name)} allows {PipeBrokeredMarker}. " +
                       "Its second copy hands the launch to the open window through a protected single-instance pipe " +
                       "and exits - there is no lock MultiBox can release. Close the running copy first, or launch it " +
                       "under a different Windows account for a real second window.";

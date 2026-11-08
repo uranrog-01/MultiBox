@@ -63,43 +63,67 @@ namespace MultiBox.Core
             }
         }
 
-        // Assign while suspended so even very fast child processes inherit this job.
-        public Process Start(ProcessStartInfo info)
+    // Assign while suspended so even very fast child processes inherit this job.
+    public Process Start(ProcessStartInfo info)
+    {
+        return StartCore(info, null, null, null);
+    }
+
+    /// <summary>
+    /// Launches under a different Windows account. Apps that derive their single-instance pipe names from
+    /// the user SID (Malwarebytes and similar) then compute a different name per account, so two real copies
+    /// can coexist. The vault environment block is still applied; the account needs its password.
+    /// </summary>
+    public Process StartAs(ProcessStartInfo info, string user, string domain, string password)
+    {
+        return StartCore(info, user, domain, password);
+    }
+
+    private Process StartCore(ProcessStartInfo info, string? user, string? domain, string? password)
+    {
+        var startup = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
+        string environment = string.Join('\0', info.Environment.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(pair => $"{pair.Key}={pair.Value}")) + "\0\0";
+        IntPtr block = Marshal.StringToHGlobalUni(environment);
+        PROCESS_INFORMATION created = default;
+        try
         {
-            var startup = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
-            string environment = string.Join('\0', info.Environment.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(pair => $"{pair.Key}={pair.Value}")) + "\0\0";
-            IntPtr block = Marshal.StringToHGlobalUni(environment);
-            PROCESS_INFORMATION created = default;
-            try
-            {
-                var command = new StringBuilder($"\"{info.FileName}\" {info.Arguments}");
-                if (!CreateProcessW(info.FileName, command, IntPtr.Zero, IntPtr.Zero, false,
+            var command = new StringBuilder($"\"{info.FileName}\" {info.Arguments}");
+            bool created_ok = user == null
+                ? CreateProcessW(info.FileName, command, IntPtr.Zero, IntPtr.Zero, false,
                     0x00000004 | 0x00000400 | (info.CreateNoWindow ? 0x08000000u : 0), block,
-                    info.WorkingDirectory, ref startup, out created))
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not start the app.");
-                if (!NativeMethods.AssignProcessToJobObject(_handle, created.hProcess))
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not attach the app to its session job.");
-                var process = Process.GetProcessById((int)created.dwProcessId);
-                if (ResumeThread(created.hThread) == uint.MaxValue)
-                {
-                    process.Dispose();
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not resume the app.");
-                }
-                return process;
-            }
-            catch
+                    info.WorkingDirectory, ref startup, out created)
+                : CreateProcessWithLogonW(user, domain, password, 0x00000001 /* LOGON_WITH_PROFILE */, info.FileName, command,
+                    0x00000004 | 0x00000400 | (info.CreateNoWindow ? 0x08000000u : 0), block,
+                    info.WorkingDirectory, ref startup, out created);
+            if (!created_ok)
             {
-                if (created.hProcess != IntPtr.Zero) TerminateProcess(created.hProcess, 1);
-                throw;
+                int code = Marshal.GetLastWin32Error();
+                string detail = new Win32Exception(code).Message;
+                throw new Win32Exception(code, (user == null ? "Could not start the app." : "Could not start the app under that Windows account.") + (detail.Length > 0 ? " " + detail : ""));
             }
-            finally
+            if (!NativeMethods.AssignProcessToJobObject(_handle, created.hProcess))
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not attach the app to its session job.");
+            var process = Process.GetProcessById((int)created.dwProcessId);
+            if (ResumeThread(created.hThread) == uint.MaxValue)
             {
-                if (created.hThread != IntPtr.Zero) NativeMethods.CloseHandle(created.hThread);
-                if (created.hProcess != IntPtr.Zero) NativeMethods.CloseHandle(created.hProcess);
-                Marshal.FreeHGlobal(block);
+                process.Dispose();
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not resume the app.");
             }
+            return process;
         }
+        catch
+        {
+            if (created.hProcess != IntPtr.Zero) TerminateProcess(created.hProcess, 1);
+            throw;
+        }
+        finally
+        {
+            if (created.hThread != IntPtr.Zero) NativeMethods.CloseHandle(created.hThread);
+            if (created.hProcess != IntPtr.Zero) NativeMethods.CloseHandle(created.hProcess);
+            Marshal.FreeHGlobal(block);
+        }
+    }
 
         public int[] GetProcessIds()
         {
@@ -143,6 +167,11 @@ namespace MultiBox.Core
         private static extern bool CreateProcessW(string application, StringBuilder command, IntPtr processAttributes,
             IntPtr threadAttributes, bool inheritHandles, uint flags, IntPtr environment, string directory,
             ref STARTUPINFO startup, out PROCESS_INFORMATION process);
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CreateProcessWithLogonW(string userName, string domain, string password,
+            uint logonFlags, string application, StringBuilder command, uint creationFlags, IntPtr environment,
+            string directory, ref STARTUPINFO startup, out PROCESS_INFORMATION process);
         [DllImport("kernel32.dll", SetLastError = true)] private static extern uint ResumeThread(IntPtr thread);
         [DllImport("kernel32.dll", SetLastError = true)] private static extern bool TerminateProcess(IntPtr process, uint code);
         [DllImport("kernel32.dll", SetLastError = true)] private static extern bool QueryInformationJobObject(

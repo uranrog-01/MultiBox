@@ -5,6 +5,7 @@ All notable changes to MultiBox. Versions follow [Semantic Versioning](https://s
 ## [Unreleased]
 
 ### Added
+- **Two windows side by side for pipe-brokered apps (Malwarebytes) via a different Windows account.** The app's single-instance pipe name embeds the user SID, so a second copy launched under another account computes a different pipe name and both windows run at once — the same side-by-side experience as every other app. When the same-account launch is refused, the toast now offers **"Different user…"**: enter the account name and password, and MultiBox starts the second copy with `CreateProcessWithLogonW` — still inside the session job, still with the vaulted environment, so its profile data stays in the Vault too. Reopen keeps the account. (Blank-password accounts are rejected by Windows policy; use an account with a password.)
 - **MultiBox Setup** — a modern setup wizard (`MultiBox-Setup-v<version>-win-x64.exe`) for people who want a normal Windows install instead of a zip. A single self-contained file with the whole app embedded: browse for a destination, choose shortcuts, watch real progress, and finish with **Launch MultiBox now**. It matches the app's own dark, luminous design.
   - Installs per user (no admin prompt, the default) or for all users into `Program Files`, and registers a proper entry in **Settings → Apps → Installed apps**.
   - Running a newer setup over an existing install upgrades in place and keeps your sessions; an existing install is detected and shown on the welcome page.

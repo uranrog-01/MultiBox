@@ -57,6 +57,10 @@ namespace MultiBox.Core
         /// <summary>Arguments the user's shortcut carried (for example "-game cstrike"); applied on launch and reuse.</summary>
         public string? CurrentAppArguments { get; private set; }
         public string? CurrentAppWorkingDirectory { get; private set; }
+        /// <summary>Different-Windows-account launch ("the second window" for pipe-brokered apps); retained across reopen.</summary>
+        public string? CurrentAppRunAsUser { get; private set; }
+        public string? CurrentAppRunAsDomain { get; private set; }
+        public string? CurrentAppRunAsPassword { get; private set; }
         public string? CurrentVaultRootPath => _vault?.RootPath;
 
         public bool HasSavedSnapshot()
@@ -126,7 +130,7 @@ namespace MultiBox.Core
                     if (reopen)
                     {
                         Report("reopening");
-                        reopened = LaunchIsolated(CurrentAppPath, out string reopenError, shortcutArguments: CurrentAppArguments, shortcutWorkingDirectory: CurrentAppWorkingDirectory);
+                        reopened = LaunchIsolated(CurrentAppPath, out string reopenError, shortcutArguments: CurrentAppArguments, shortcutWorkingDirectory: CurrentAppWorkingDirectory, runAsUser: CurrentAppRunAsUser, runAsDomain: CurrentAppRunAsDomain, runAsPassword: CurrentAppRunAsPassword);
                         if (!reopened) warning = "The app could not reopen. Its session files were kept; use Open to retry. " + reopenError;
                     }
                 }
@@ -175,7 +179,7 @@ namespace MultiBox.Core
             return true;
         }
 
-        public bool LaunchIsolated(string rawPath, out string errorMessage, bool restoreSavedProfile = false, string? profileId = null, string? shortcutArguments = null, string? shortcutWorkingDirectory = null)
+        public bool LaunchIsolated(string rawPath, out string errorMessage, bool restoreSavedProfile = false, string? profileId = null, string? shortcutArguments = null, string? shortcutWorkingDirectory = null, string? runAsUser = null, string? runAsDomain = null, string? runAsPassword = null)
         {
             errorMessage = string.Empty;
             lock (_lock)
@@ -201,13 +205,17 @@ namespace MultiBox.Core
                     // stored values survive: callers re-entering with a bare exe path keep their launch.
                     CurrentAppArguments = shortcutArguments ?? resolvedArguments ?? CurrentAppArguments;
                     CurrentAppWorkingDirectory = shortcutWorkingDirectory ?? resolvedWorkingDirectory ?? CurrentAppWorkingDirectory;
+                    CurrentAppRunAsUser = runAsUser ?? CurrentAppRunAsUser;
+                    CurrentAppRunAsDomain = runAsDomain ?? CurrentAppRunAsDomain;
+                    CurrentAppRunAsPassword = runAsPassword ?? CurrentAppRunAsPassword;
                     CurrentAppPath = targetExe;
                     CurrentAppName = Path.GetFileName(targetExe);
 
                     // A pipe-brokered single-instance app that is already running will swallow this launch
                     // (the copy connects to the open window's pipe and exits). Refuse with the explanation
-                    // instead of the confusing flash-and-close.
-                    if (AppCompatibility.PipeBrokeredSingleInstanceBlocked(targetExe, out string brokerNote))
+                    // instead of the confusing flash-and-close — unless a different Windows account was
+                    // requested: the app's pipe name embeds the user SID, so the names no longer collide.
+                    if (runAsUser == null && AppCompatibility.PipeBrokeredSingleInstanceBlocked(targetExe, out string brokerNote))
                     {
                         errorMessage = brokerNote;
                         return false;
@@ -271,7 +279,12 @@ namespace MultiBox.Core
                     var heldWindows = SingleInstanceLocks.PrepareLaunch(targetExe);
 
                     // Attach before the app runs so its children stay in this session.
-                    try { _process = _jobObject.Start(startInfo); }
+                    try
+                    {
+                        _process = CurrentAppRunAsUser == null
+                            ? _jobObject.Start(startInfo)
+                            : _jobObject.StartAs(startInfo, CurrentAppRunAsUser, CurrentAppRunAsDomain ?? ".", CurrentAppRunAsPassword ?? "");
+                    }
                     catch { heldWindows.Restore(); throw; }
                     var job = _jobObject;
                     SingleInstanceLocks.WatchSession(() => { try { return job.GetProcessIds(); } catch (Exception ex) when (ex is ObjectDisposedException or System.ComponentModel.Win32Exception or InvalidOperationException) { return []; } }, heldWindows, _vault.VaultId);

@@ -71,7 +71,7 @@ public sealed class SessionManager : IDisposable
         Publish();
     }
 
-    public bool LaunchNew(string rawPath, bool restoreSaved, out string error, string? profileId = null)
+    public bool LaunchNew(string rawPath, bool restoreSaved, out string error, string? profileId = null, string? runAsUser = null, string? runAsDomain = null, string? runAsPassword = null)
     {
         error = "";
         string path;
@@ -103,7 +103,7 @@ public sealed class SessionManager : IDisposable
         lock (entry.Gate)
         {
             lock (_sync) { if (_disposed) { error = "MultiBox is closing."; return false; } }
-            success = entry.Engine.LaunchIsolated(path, out error, restoreSaved, profileId, shortcutArguments, shortcutWorkingDirectory);
+            success = entry.Engine.LaunchIsolated(path, out error, restoreSaved, profileId, shortcutArguments, shortcutWorkingDirectory, runAsUser, runAsDomain, runAsPassword);
             string state = entry.Engine.State == SessionState.Running ? "running" : "preserved";
             string vault = entry.Engine.CurrentVaultRootPath ?? "";
             lock (_sync)

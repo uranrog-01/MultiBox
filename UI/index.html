@@ -1307,7 +1307,34 @@
   <div class="toast-container">
     <div class="toast" id="toast">
       <span id="toastMsg">Notification message</span>
+      <span id="toastRunAs" onclick="openRunAsDialog()" style="display:none; cursor:pointer; margin-left:10px; padding:4px 10px; border-radius:6px; background:rgba(186,255,42,0.14); border:1px solid rgba(186,255,42,0.45); color:#BAFF2A; font-size:11px; font-weight:700; white-space:nowrap;" title="Launch under a different Windows account for a real second window">Different user…</span>
       <span class="toast-close" onclick="hideNotification()">✕</span>
+    </div>
+  </div>
+
+  <!-- Different-Windows-account launch (pipe-brokered single-instance apps) -->
+  <div class="confirm-modal-overlay" id="runAsModal" style="display:none;">
+    <div class="confirm-modal-card">
+      <div style="color:#BAFF2A; font-size:16px; font-weight:800; letter-spacing:0.8px; margin-bottom:10px;">
+        LAUNCH AS DIFFERENT WINDOWS USER
+      </div>
+      <div style="font-size:12.5px; color:#cbd5e1; line-height:1.55; margin-bottom:16px; text-align:center;">
+        This app allows one window per Windows account. A second copy under another account gets its own
+        single-instance pipe, so both windows can run side by side. Its session data stays in this Vault.
+      </div>
+      <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:16px;">
+        <input id="runAsUser" type="text" placeholder="Windows account name (e.g. Administrator)" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:9px 12px; color:#e2e8f0; font-size:13px; outline:none;" />
+        <input id="runAsDomain" type="text" placeholder="Domain or . for this PC" value="." style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:9px 12px; color:#e2e8f0; font-size:13px; outline:none;" />
+        <input id="runAsPassword" type="password" placeholder="Password of that account" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:9px 12px; color:#e2e8f0; font-size:13px; outline:none;" />
+      </div>
+      <div style="display:flex; flex-direction:column; gap:9px;">
+        <button class="confirm-btn" style="background:rgba(186,255,42,0.16); border:1px solid rgba(186,255,42,0.5); color:#BAFF2A;" onclick="submitRunAsLaunch()">
+          LAUNCH SECOND WINDOW
+        </button>
+        <button class="confirm-btn cancel" onclick="closeRunAsDialog()">
+          CANCEL
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1765,6 +1792,7 @@
       dragWindow: () => window.chrome?.webview?.postMessage({ action: 'dragWindow' }),
       browseApp: () => window.chrome?.webview?.postMessage({ action: 'browseApp' }),
       launchApp: (path) => window.chrome?.webview?.postMessage({ action: 'launchApp', path: path }),
+      launchAppAsUser: (path, user, domain, password) => window.chrome?.webview?.postMessage({ action: 'launchAppAsUser', path: path, user: user, domain: domain, password: password }),
       reopenApp: () => window.chrome?.webview?.postMessage({ action: 'reopenApp', sessionId: window.MultiBoxSessions?.selectedId() }),
       reopenOrFocusApp: (sessionId = window.MultiBoxSessions?.selectedId()) => window.chrome?.webview?.postMessage({ action: 'reopenOrFocusApp', sessionId }),
       getRunningProcesses: () => window.chrome?.webview?.postMessage({ action: 'getRunningProcesses' }),
@@ -2289,7 +2317,16 @@
     function showNotification(type, msg) {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
+      const runAsAction = document.getElementById('toastRunAs');
       toastMsg.innerText = msg;
+
+      // Pipe-brokered refusal: offer a real second window under a different Windows account.
+      if (type === 'error' && msg && msg.indexOf('one window per Windows account') !== -1) {
+        runAsBlockedPath = selectedAppPath || '';
+        runAsAction.style.display = 'inline-block';
+      } else {
+        runAsAction.style.display = 'none';
+      }
 
       if (type === 'error' && currentState === 'loading' && !window.MultiBoxSessions?.ids().length) setUiState('idle');
       toast.className = 'toast show ' + (type === 'success' ? 'success' : '');
@@ -2300,6 +2337,31 @@
       }, 4500);
     }
     window.showNotification = showNotification;
+
+    // "Launch as different user" flow for pipe-brokered single-instance apps (Malwarebytes and similar).
+    let runAsBlockedPath = '';
+    function openRunAsDialog() {
+      if (!runAsBlockedPath) return;
+      document.getElementById('runAsUser').value = '';
+      document.getElementById('runAsDomain').value = '.';
+      document.getElementById('runAsPassword').value = '';
+      document.getElementById('runAsModal').style.display = 'flex';
+      document.getElementById('runAsUser').focus();
+    }
+    function closeRunAsDialog() {
+      document.getElementById('runAsModal').style.display = 'none';
+    }
+    function submitRunAsLaunch() {
+      const user = document.getElementById('runAsUser').value.trim();
+      const domain = document.getElementById('runAsDomain').value.trim();
+      const password = document.getElementById('runAsPassword').value;
+      if (!user) return;
+      closeRunAsDialog();
+      window.chrome_backend?.launchAppAsUser(runAsBlockedPath, user, domain, password);
+    }
+    window.openRunAsDialog = openRunAsDialog;
+    window.closeRunAsDialog = closeRunAsDialog;
+    window.submitRunAsLaunch = submitRunAsLaunch;
 
     function hideNotification() {
       const toast = document.getElementById('toast');
