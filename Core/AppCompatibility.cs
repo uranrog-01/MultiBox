@@ -49,6 +49,49 @@ internal static class AppCompatibility
         // Single-instance locks (Tauri and similar) are handled around the actual start by SingleInstanceLocks.
     }
 
+    // Apps whose UI hands a second launch to the open window through a fixed, machine-global named pipe
+    // (verified for Malwarebytes: managed SingleInstanceService hosting \Device\NamedPipe\MbamUI_<guid>_<sid>,
+    // plus a matching named semaphore). The second copy is a willing pipe client - there is no lock to release,
+    // and the pipe name is shared machine-wide, so two UIs cannot coexist for one Windows account. When one of
+    // these apps is already running, MultiBox refuses the launch with that explanation instead of letting the
+    // copy flash and close.
+    private static readonly HashSet<string> PipeBrokeredSingleInstanceApps = new(StringComparer.Ordinal)
+    {
+        "malwarebytes.exe",
+    };
+
+    /// <summary>True when a launch must be refused because a pipe-brokered single-instance app is already running.</summary>
+    public static bool PipeBrokeredSingleInstanceBlocked(string targetExe, out string explanation)
+    {
+        explanation = string.Empty;
+        string name = Path.GetFileName(targetExe);
+        if (!PipeBrokeredSingleInstanceApps.Contains(name.ToLowerInvariant())) return false;
+        bool alreadyRunning = false;
+        try
+        {
+            foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(name)))
+            {
+                if (process.Id == Environment.ProcessId || process.HasExited) continue;
+                // Prefer the exact executable path; a process whose path cannot be read still counts.
+                try
+                {
+                    if (process.MainModule?.FileName is string path &&
+                        !string.Equals(path, targetExe, StringComparison.OrdinalIgnoreCase)) continue;
+                }
+                catch (Exception) { }
+                alreadyRunning = true;
+                break;
+            }
+        }
+        catch (Exception) { }
+        if (!alreadyRunning) return false;
+        explanation = $"{Path.GetFileNameWithoutExtension(name)} allows one window per Windows account. " +
+                      "Its second copy hands the launch to the open window through a protected single-instance pipe " +
+                      "and exits - there is no lock MultiBox can release. Close the running copy first, or launch it " +
+                      "under a different Windows account for a real second window.";
+        return true;
+    }
+
     /// <summary>
     /// Codex/ChatGPT's project picker is an Electron folder dialog. Without an explicit starting folder it uses
     /// the user's Downloads folder, then the Windows profile folder. A vaulted profile makes both point at an

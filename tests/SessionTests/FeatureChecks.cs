@@ -20,6 +20,9 @@ static class FeatureChecks
         Check(!SingleInstanceLocks.IsSingleInstanceName(@"\Sessions\1\BaseNamedObjects\__DDrawExclMode__"), "A DirectDraw exclusion mutex was mistaken for a single-instance lock.");
         Check(AppCompatibility.IsSteamManaged(@"C:\Program Files (x86)\Steam\steamapps\common\Half-Life"), "A Steam library app was not recognized as Steam-managed.");
         Check(!AppCompatibility.IsSteamManaged(Path.GetTempPath()), "An ordinary folder was mistaken for a Steam library.");
+        Check(!AppCompatibility.PipeBrokeredSingleInstanceBlocked(fixtureDirectory + "\\SessionFixture.exe", out string _), "An ordinary app was treated as pipe-brokered single-instance.");
+        if (AppCompatibility.PipeBrokeredSingleInstanceBlocked(@"C:\Program Files\Malwarebytes\Anti-Malware\Malwarebytes.exe", out string brokerNote))
+            Check(brokerNote.Contains("one window per Windows account"), "The pipe-brokered refusal lost its explanation.");
         Console.WriteLine("PASS Single-instance lock names match Tauri and known launcher mutexes; ordinary app mutexes are left alone.");
 
         string token = Guid.NewGuid().ToString("N");

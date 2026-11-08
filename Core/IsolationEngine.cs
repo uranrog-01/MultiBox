@@ -204,6 +204,15 @@ namespace MultiBox.Core
                     CurrentAppPath = targetExe;
                     CurrentAppName = Path.GetFileName(targetExe);
 
+                    // A pipe-brokered single-instance app that is already running will swallow this launch
+                    // (the copy connects to the open window's pipe and exits). Refuse with the explanation
+                    // instead of the confusing flash-and-close.
+                    if (AppCompatibility.PipeBrokeredSingleInstanceBlocked(targetExe, out string brokerNote))
+                    {
+                        errorMessage = brokerNote;
+                        return false;
+                    }
+
                     // 1. Provision Ephemeral Vault if not resuming preserved session
                     if (_vault == null || State == SessionState.Idle)
                     {
