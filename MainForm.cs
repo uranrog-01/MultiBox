@@ -967,10 +967,14 @@ namespace MultiBox
             }
         }
 
-        private void Notify(string type, string message)
+        private void Notify(string type, string message, string? blockedPath = null)
         {
             if (IsDisposed || Disposing) return;
-            try { BeginInvoke(() => _webView.CoreWebView2?.ExecuteScriptAsync($"window.showNotification({JsonSerializer.Serialize(type)}, {JsonSerializer.Serialize(message)});")); }
+            try
+            {
+                string extra = blockedPath == null ? "" : ", " + JsonSerializer.Serialize(blockedPath);
+                BeginInvoke(() => _webView.CoreWebView2?.ExecuteScriptAsync($"window.showNotification({JsonSerializer.Serialize(type)}, {JsonSerializer.Serialize(message)}{extra});"));
+            }
             catch (InvalidOperationException) { }
         }
 
@@ -981,7 +985,7 @@ namespace MultiBox
             {
                 if (!_sessions.LaunchNew(rawPath, restoreSavedProfile, out string error, profileId, runAsUser, runAsDomain, runAsPassword))
                 {
-                    Notify("error", error);
+                    Notify("error", error, restoreSavedProfile ? null : rawPath);
                     if (onMissingExecutable != null && error.Contains("executable could not be found", StringComparison.OrdinalIgnoreCase))
                         this.BeginInvoke(onMissingExecutable);
                 }
@@ -1016,6 +1020,9 @@ namespace MultiBox
             };
             if (ofd.ShowDialog(this) == DialogResult.OK)
             {
+                // The card (and the refusal toast's 'Different user…' action) need the app the user picked.
+                try { BeginInvoke(() => _webView.CoreWebView2?.ExecuteScriptAsync($"window.onAppSelected({JsonSerializer.Serialize(Path.GetFileNameWithoutExtension(ofd.FileName))}, {JsonSerializer.Serialize(ofd.FileName)});")); }
+                catch (InvalidOperationException) { }
                 LaunchApp(ofd.FileName);
             }
         }
