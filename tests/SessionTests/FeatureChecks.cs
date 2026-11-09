@@ -25,7 +25,8 @@ static class FeatureChecks
             Check(brokerNote.Contains("one window per Windows account"), "The pipe-brokered refusal lost its explanation.");
         Check(!AppCompatibility.SteamSingleInstanceBlocked(fixtureDirectory + "\\SessionFixture.exe", out string _), "An ordinary app was treated as a Steam single-instance lock.");
         Check(AppCompatibility.SteamSingleInstanceBlocked(fixtureDirectory + "\\steam.exe", out string steamNote) &&
-              steamNote.Contains("one window per Windows account") && steamNote.Contains("-master_ipc_name_override"),
+              steamNote.Contains("one window per Windows account") && steamNote.Contains("master IPC name") &&
+              steamNote.Contains("profile"),
             "The Steam refusal lost its explanation.");
         Check(AppCompatibility.RequiresDifferentAccount(fixtureDirectory + "\\steam.exe", out string _) &&
               !AppCompatibility.RequiresDifferentAccount(fixtureDirectory + "\\SessionFixture.exe", out string _),

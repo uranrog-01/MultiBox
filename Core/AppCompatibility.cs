@@ -135,11 +135,11 @@ internal static class AppCompatibility
         explanation = string.Empty;
         if (!SteamBootstrapApps.Contains(Path.GetFileName(targetExe).ToLowerInvariant())) return false;
         explanation = $"Steam allows {PipeBrokeredMarker}. Its second copy hands the launch to the open client " +
-                      "through a machine-global named event, and its browser UI keeps a fixed Chromium cache in the " +
-                      "real Windows profile, which the vault cannot redirect - a second copy on this account would " +
-                      "stay unresponsive, and even a first one would take that cache away from your own Steam. " +
-                      "Launch it under a different Windows account: MultiBox gives that copy its own master IPC name " +
-                      "(-master_ipc_name_override) so it starts as a real second client.";
+                      "through a machine-global named event, and its browser UI takes its Chromium cache from the " +
+                      "Windows account itself - not from the environment, so no profile or Vault folder can move it. " +
+                      "A second copy on this account would stay unresponsive, and even a first vaulted one would take " +
+                      "that cache away from your own Steam. A real second client needs a separate Windows account " +
+                      "(Different user... gives that copy its own master IPC name) or a separate Windows installation.";
         return true;
     }
 
