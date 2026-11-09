@@ -23,7 +23,17 @@ static class FeatureChecks
         Check(!AppCompatibility.PipeBrokeredSingleInstanceBlocked(fixtureDirectory + "\\SessionFixture.exe", out string _), "An ordinary app was treated as pipe-brokered single-instance.");
         if (AppCompatibility.PipeBrokeredSingleInstanceBlocked(@"C:\Program Files\Malwarebytes\Anti-Malware\Malwarebytes.exe", out string brokerNote))
             Check(brokerNote.Contains("one window per Windows account"), "The pipe-brokered refusal lost its explanation.");
+        Check(!AppCompatibility.SteamSingleInstanceBlocked(fixtureDirectory + "\\SessionFixture.exe", out string _), "An ordinary app was treated as a Steam single-instance lock.");
+        Check(AppCompatibility.SteamSingleInstanceBlocked(fixtureDirectory + "\\steam.exe", out string steamNote) &&
+              steamNote.Contains("one window per Windows account") && steamNote.Contains("-master_ipc_name_override"),
+            "The Steam refusal lost its explanation.");
+        Check(AppCompatibility.RequiresDifferentAccount(fixtureDirectory + "\\steam.exe", out string _) &&
+              !AppCompatibility.RequiresDifferentAccount(fixtureDirectory + "\\SessionFixture.exe", out string _),
+            "The different-account requirement picked the wrong apps.");
+        Check(AppCompatibility.MasterIpcOverrideArgument(fixtureDirectory + "\\SessionFixture.exe", "abc") == null, "A non-Steam app received a master IPC override.");
+        Check(AppCompatibility.MasterIpcOverrideArgument(fixtureDirectory + "\\steam.exe", "abc") == "-master_ipc_name_override=abc", "Steam's master IPC override argument was not built.");
         Console.WriteLine("PASS Single-instance lock names match Tauri and known launcher mutexes; ordinary app mutexes are left alone.");
+        Console.WriteLine("PASS Steam is refused on the same account and its different-account launch overrides the master IPC name.");
 
         string token = Guid.NewGuid().ToString("N");
         string exe = Path.Combine(fixtureDirectory, "chrome-" + token + ".exe");
@@ -54,6 +64,9 @@ static class FeatureChecks
             var genericStart = (ProcessStartInfo)createStartInfo.Invoke(null, new object?[] { Path.Combine(fixtureDirectory, "Generic-" + token + ".exe"), envVault, null })!;
             Check(string.Equals(Env(genericStart, "USERPROFILE"), envVault.UserProfile, StringComparison.OrdinalIgnoreCase),
                 "A non-Codex app lost its vaulted user profile.");
+            var steamStart = (ProcessStartInfo)createStartInfo.Invoke(null, new object?[] { Path.Combine(fixtureDirectory, "steam.exe"), envVault, null })!;
+            Check(steamStart.Arguments.Contains("-master_ipc_name_override=" + envVault.VaultId), "A vaulted Steam launch did not override the master IPC name.");
+            Check(!genericStart.Arguments.Contains("master_ipc_name_override"), "A non-Steam app received a master IPC override.");
             Console.WriteLine("PASS Codex browses the real Windows profile while its account/session data stays in the vault.");
         }
 

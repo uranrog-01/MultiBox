@@ -1312,7 +1312,7 @@
     </div>
   </div>
 
-  <!-- Different-Windows-account launch (pipe-brokered single-instance apps) -->
+      <!-- Different-Windows-account launch (single-instance apps whose lock follows the account) -->
   <div class="confirm-modal-overlay" id="runAsModal" style="display:none;">
     <div class="confirm-modal-card">
       <div style="color:#BAFF2A; font-size:16px; font-weight:800; letter-spacing:0.8px; margin-bottom:10px;">
@@ -1320,7 +1320,8 @@
       </div>
       <div style="font-size:12.5px; color:#cbd5e1; line-height:1.55; margin-bottom:16px; text-align:center;">
         This app allows one window per Windows account. A second copy under another account gets its own
-        single-instance pipe, so both windows can run side by side. Its session data stays in this Vault.
+        single-instance lock (and for Steam its own master IPC name), so both windows can run side by side.
+        Its session data stays in this Vault.
       </div>
       <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:16px;">
         <input id="runAsUser" type="text" placeholder="Windows account name (e.g. Administrator)" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:9px 12px; color:#e2e8f0; font-size:13px; outline:none;" />
@@ -1434,7 +1435,7 @@
     </div>
     <div class="session-actions">
       <button class="session-action" id="duplicateSessionButton" type="button" title="Open another independent copy with a fresh profile">＋ Another copy</button>
-      <button class="session-action" id="runAsButton" type="button" title="Launch the selected app under a different Windows account — needed by apps whose single-instance lock is tied to the account (e.g. Malwarebytes)" onclick="openRunAsDialog(window.getSelectedAppPath ? window.getSelectedAppPath() : '')">👤 Different user</button>
+      <button class="session-action" id="runAsButton" type="button" title="Launch the selected app under a different Windows account — needed by apps whose single-instance lock is tied to the account (e.g. Malwarebytes, Steam)" onclick="openRunAsDialog(window.getSelectedAppPath ? window.getSelectedAppPath() : '')">👤 Different user</button>
     </div>
   </div>
 
@@ -2340,7 +2341,7 @@
     }
     window.showNotification = showNotification;
 
-    // "Launch as different user" flow for pipe-brokered single-instance apps (Malwarebytes and similar)
+    // "Launch as different user" flow for single-instance apps whose lock follows the account (Malwarebytes, Steam and similar)
     // and for any app that should run under another Windows account.
     let runAsBlockedPath = '';
     function openRunAsDialog(path) {

@@ -47,6 +47,14 @@ internal static class AppCompatibility
             startInfo.Environment["WEBVIEW2_USER_DATA_FOLDER"] = Path.Combine(vault.LocalAppData, Path.GetFileName(targetExe) + ".WebView2");
 
         // Single-instance locks (Tauri and similar) are handled around the actual start by SingleInstanceLocks.
+
+        // Steam: detach this copy from the machine-wide master handoff so it starts on its own.
+        // Same-account launches are refused before this point; only a different-account launch reaches here.
+        string? masterOverride = MasterIpcOverrideArgument(targetExe, vault.VaultId);
+        if (masterOverride != null)
+            startInfo.Arguments = string.IsNullOrWhiteSpace(startInfo.Arguments)
+                ? masterOverride
+                : $"{startInfo.Arguments} {masterOverride}";
     }
 
     // Apps whose UI hands a second launch to the open window through a fixed, machine-global named pipe
@@ -58,6 +66,25 @@ internal static class AppCompatibility
     private static readonly HashSet<string> PipeBrokeredSingleInstanceApps = new(StringComparer.Ordinal)
     {
         "malwarebytes.exe",
+    };
+
+    // Steam's bootstrap client (steam.exe) hands a second launch to the running copy through a
+    // machine-global named event, Global\Valve_SteamIPC_Class - verified in the binary as a string
+    // literal used with OpenEventA/CreateEventA, and by enumerating the running client's handles.
+    // The event's DACL is NULL, so every Windows account sees it: a different account alone does
+    // not escape the handoff. The one variable is the master IPC name - -master_ipc_name_override
+    // replaces it, and the copy stops forwarding and starts as its own master (verified live: a
+    // second steam.exe with the override survives and hosts <override>_SharedMemFile/Lock).
+    // The override alone is still not enough: the client's browser UI (steamwebhelper) keeps its
+    // Chromium cache in <real profile>\AppData\Local\Steam\htmlcache, a known folder the vault's
+    // environment cannot redirect - steam.exe passes -cachedir with the real path even when
+    // LOCALAPPDATA points into the vault (verified live). Two clients on one Windows account fight
+    // over that cache: the second window stays "Steamwebhelper is not responding", and a first
+    // vaulted client would take the cache away from the user's own Steam. So one Steam window per
+    // Windows account; the escape is a different account plus a per-session override name.
+    private static readonly HashSet<string> SteamBootstrapApps = new(StringComparer.Ordinal)
+    {
+        "steam.exe",
     };
 
     /// <summary>The phrase the pipe-brokered refusal always contains; the UI uses it to offer a different-account launch.</summary>
@@ -95,6 +122,42 @@ internal static class AppCompatibility
                       "(unlike Codex, Claude and other Electron apps, whose lock lives inside the profile). " +
                       "Close the running copy first, or launch it under a different Windows account for a real second window.";
         return true;
+    }
+
+    /// <summary>
+    /// True when a same-account Steam launch must be refused. Any vaulted Steam client on this Windows
+    /// account would host its browser cache in the real profile's known folder and take it away from the
+    /// user's own Steam, and a second client would be left unresponsive by that same cache - so the
+    /// explanation offers the different-account launch, where MultiBox also overrides the master IPC name.
+    /// </summary>
+    public static bool SteamSingleInstanceBlocked(string targetExe, out string explanation)
+    {
+        explanation = string.Empty;
+        if (!SteamBootstrapApps.Contains(Path.GetFileName(targetExe).ToLowerInvariant())) return false;
+        explanation = $"Steam allows {PipeBrokeredMarker}. Its second copy hands the launch to the open client " +
+                      "through a machine-global named event, and its browser UI keeps a fixed Chromium cache in the " +
+                      "real Windows profile, which the vault cannot redirect - a second copy on this account would " +
+                      "stay unresponsive, and even a first one would take that cache away from your own Steam. " +
+                      "Launch it under a different Windows account: MultiBox gives that copy its own master IPC name " +
+                      "(-master_ipc_name_override) so it starts as a real second client.";
+        return true;
+    }
+
+    /// <summary>True when this app cannot run a second copy on the current Windows account and the UI must offer "Different user".</summary>
+    public static bool RequiresDifferentAccount(string targetExe, out string explanation) =>
+        PipeBrokeredSingleInstanceBlocked(targetExe, out explanation) ||
+        SteamSingleInstanceBlocked(targetExe, out explanation);
+
+    /// <summary>
+    /// Steam bootstrap: the argument that detaches a copy from the machine-wide master handoff, so it
+    /// becomes the master of its own IPC name and actually starts instead of forwarding to the open
+    /// client. The vault id is unique per session, so no two sessions share a name. Only a
+    /// different-account launch reaches this point; same-account launches are refused up front.
+    /// </summary>
+    public static string? MasterIpcOverrideArgument(string targetExe, string vaultId)
+    {
+        if (!SteamBootstrapApps.Contains(Path.GetFileName(targetExe).ToLowerInvariant())) return null;
+        return $"-master_ipc_name_override={vaultId}";
     }
 
     /// <summary>

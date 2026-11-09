@@ -211,11 +211,13 @@ namespace MultiBox.Core
                     CurrentAppPath = targetExe;
                     CurrentAppName = Path.GetFileName(targetExe);
 
-                    // A pipe-brokered single-instance app that is already running will swallow this launch
-                    // (the copy connects to the open window's pipe and exits). Refuse with the explanation
-                    // instead of the confusing flash-and-close — unless a different Windows account was
-                    // requested: the app's pipe name embeds the user SID, so the names no longer collide.
-                    if (runAsUser == null && AppCompatibility.PipeBrokeredSingleInstanceBlocked(targetExe, out string brokerNote))
+                    // An app whose single-instance handoff cannot vary on this Windows account will swallow
+                    // this launch (the copy hands its arguments to the open window and exits, or collides
+                    // with the running copy's browser cache). Refuse with the explanation instead of the
+                    // confusing flash-and-close — unless a different Windows account was requested: the
+                    // Malwarebytes pipe name then embeds another user SID, and Steam additionally gets a
+                    // per-session master IPC name via -master_ipc_name_override.
+                    if (runAsUser == null && AppCompatibility.RequiresDifferentAccount(targetExe, out string brokerNote))
                     {
                         errorMessage = brokerNote;
                         return false;
