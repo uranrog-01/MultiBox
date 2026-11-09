@@ -1434,6 +1434,7 @@
     </div>
     <div class="session-actions">
       <button class="session-action" id="duplicateSessionButton" type="button" title="Open another independent copy with a fresh profile">＋ Another copy</button>
+      <button class="session-action" id="runAsButton" type="button" title="Launch the selected app under a different Windows account — needed by apps whose single-instance lock is tied to the account (e.g. Malwarebytes)" onclick="openRunAsDialog(window.getSelectedAppPath ? window.getSelectedAppPath() : '')">👤 Different user</button>
     </div>
   </div>
 
@@ -1966,14 +1967,15 @@
     // Called from C# when a file is selected or dropped
     window.onAppSelected = function(name, path) {
       selectedAppPath = path;
-      setUiState('loading');
-      appTitle.innerText = name;
+      setUiState('loading');      appTitle.innerText = name;
       appSub.innerText = path;
       appSub.title = path;
       powerLabel.innerText = "Preparing…";
       statusText.innerText = "Preparing session…";
       vaultTag.innerHTML = `<span>Ready</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
     };
+    // The 'Different user' tool and the refusal toast both need the app that is about to launch.
+    window.getSelectedAppPath = function() { return selectedAppPath || ''; };
 
     window.onDragHover = function(isHovering) {
       if (isHovering) {
@@ -2338,10 +2340,12 @@
     }
     window.showNotification = showNotification;
 
-    // "Launch as different user" flow for pipe-brokered single-instance apps (Malwarebytes and similar).
+    // "Launch as different user" flow for pipe-brokered single-instance apps (Malwarebytes and similar)
+    // and for any app that should run under another Windows account.
     let runAsBlockedPath = '';
-    function openRunAsDialog() {
-      if (!runAsBlockedPath) return;
+    function openRunAsDialog(path) {
+      if (path) runAsBlockedPath = path;
+      if (!runAsBlockedPath) { showNotification('error', 'Select an application first, then use Different user.'); return; }
       document.getElementById('runAsUser').value = '';
       document.getElementById('runAsDomain').value = '.';
       document.getElementById('runAsPassword').value = '';
